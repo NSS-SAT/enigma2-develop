@@ -1,6 +1,6 @@
 from Components.config import config, ConfigSubsection, ConfigSlider, ConfigYesNo, ConfigNothing, ConfigSelection
 from enigma import eDBoxLCD
-from Components.SystemInfo import BoxInfo
+from Components.SystemInfo import SystemInfo
 from Screens.InfoBar import InfoBar
 from Screens.Screen import Screen
 
@@ -97,50 +97,50 @@ def InitLcd():
 		config.lcd.flip = ConfigYesNo(default=False)
 		config.lcd.flip.addNotifier(setLCDflipped)
 
-		if BoxInfo.getItem("LedPowerColor"):
+		if SystemInfo["LedPowerColor"]:
 			def setLedPowerColor(configElement):
-				open(BoxInfo.getItem("LedPowerColor"), "w").write(configElement.value)
+				open(SystemInfo["LedPowerColor"], "w").write(configElement.value)
 			config.lcd.ledpowercolor = ConfigSelection(default="1", choices=[("0", _("off")), ("1", _("blue")), ("2", _("red")), ("3", _("violet"))])
 			config.lcd.ledpowercolor.addNotifier(setLedPowerColor)
 
-		if BoxInfo.getItem("LedStandbyColor"):
+		if SystemInfo["LedStandbyColor"]:
 			def setLedStandbyColor(configElement):
-				open(BoxInfo.getItem("LedStandbyColor"), "w").write(configElement.value)
+				open(SystemInfo["LedStandbyColor"], "w").write(configElement.value)
 			config.lcd.ledstandbycolor = ConfigSelection(default="3", choices=[("0", _("off")), ("1", _("blue")), ("2", _("red")), ("3", _("violet"))])
 			config.lcd.ledstandbycolor.addNotifier(setLedStandbyColor)
 
-		if BoxInfo.getItem("LedSuspendColor"):
+		if SystemInfo["LedSuspendColor"]:
 			def setLedSuspendColor(configElement):
-				open(BoxInfo.getItem("LedSuspendColor"), "w").write(configElement.value)
+				open(SystemInfo["LedSuspendColor"], "w").write(configElement.value)
 			config.lcd.ledsuspendcolor = ConfigSelection(default="2", choices=[("0", _("off")), ("1", _("blue")), ("2", _("red")), ("3", _("violet"))])
 			config.lcd.ledsuspendcolor.addNotifier(setLedSuspendColor)
 
-		if BoxInfo.getItem("Power4x7On"):
+		if SystemInfo["Power4x7On"]:
 			def setPower4x7On(configElement):
-				open(BoxInfo.getItem("Power4x7On"), "w").write(configElement.value)
+				open(SystemInfo["Power4x7On"], "w").write(configElement.value)
 			config.lcd.power4x7on = ConfigSelection(default="on", choices=[("off", _("Off")), ("on", _("On"))])
 			config.lcd.power4x7on.addNotifier(setPower4x7On)
 
-		if BoxInfo.getItem("Power4x7Standby"):
+		if SystemInfo["Power4x7Standby"]:
 			def setPower4x7Standby(configElement):
-				open(BoxInfo.getItem("Power4x7Standby"), "w").write(configElement.value)
+				open(SystemInfo["Power4x7Standby"], "w").write(configElement.value)
 			config.lcd.power4x7standby = ConfigSelection(default="on", choices=[("off", _("Off")), ("on", _("On"))])
 			config.lcd.power4x7standby.addNotifier(setPower4x7Standby)
 
-		if BoxInfo.getItem("Power4x7Suspend"):
+		if SystemInfo["Power4x7Suspend"]:
 			def setPower4x7Suspend(configElement):
-				open(BoxInfo.getItem("Power4x7Suspend"), "w").write(configElement.value)
+				open(SystemInfo["Power4x7Suspend"], "w").write(configElement.value)
 			config.lcd.power4x7suspend = ConfigSelection(default="off", choices=[("off", _("Off")), ("on", _("On"))])
 			config.lcd.power4x7suspend.addNotifier(setPower4x7Suspend)
 
-		if BoxInfo.getItem("LcdLiveTV"):
+		if SystemInfo["LcdLiveTV"]:
 			def lcdLiveTvChanged(configElement):
 				setLCDLiveTv(configElement.value)
 				configElement.save()
 			config.lcd.showTv = ConfigYesNo(default=False)
 			config.lcd.showTv.addNotifier(lcdLiveTvChanged)
 
-			if "live_enable" in BoxInfo.getItem("LcdLiveTV"):
+			if "live_enable" in SystemInfo["LcdLiveTV"]:
 				config.misc.standbyCounter.addNotifier(standbyCounterChangedLCDLiveTV, initial_call=False)
 	else:
 		def doNothing():
@@ -155,10 +155,10 @@ def InitLcd():
 
 
 def setLCDLiveTv(value):
-	if "live_enable" in BoxInfo.getItem("LcdLiveTV"):
-		open(BoxInfo.getItem("LcdLiveTV"), "w").write(value and "enable" or "disable")
+	if "live_enable" in SystemInfo["LcdLiveTV"]:
+		open(SystemInfo["LcdLiveTV"], "w").write(value and "enable" or "disable")
 	else:
-		open(BoxInfo.getItem("LcdLiveTV"), "w").write(value and "0" or "1")
+		open(SystemInfo["LcdLiveTV"], "w").write(value and "0" or "1")
 	if not value:
 		try:
 			InfoBarInstance = InfoBar.instance

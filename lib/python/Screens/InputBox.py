@@ -5,7 +5,6 @@ from Components.config import config
 from Components.ActionMap import NumberActionMap, ActionMap
 from Components.Label import Label
 from Components.Input import Input
-from Components.Sources.StaticText import StaticText
 from Tools.BoundFunction import boundFunction
 from Tools.Notifications import AddPopup
 from time import time
@@ -21,8 +20,6 @@ class InputBox(Screen):
 		self.setTitle(windowTitle, showPath=False)
 		if useableChars is not None:
 			self["input"].setUseableChars(useableChars)
-
-		self["key_text"] = StaticText(_("TEXT"))
 
 		self["actions"] = NumberActionMap(["WizardActions", "InputBoxActions", "InputAsciiActions", "KeyboardInputActions"],
 		{
@@ -93,7 +90,6 @@ class InputBox(Screen):
 
 class PinInput(InputBox):
 	def __init__(self, session, service="", triesEntry=None, pinList=[], popup=False, simple=True, zap=False, *args, **kwargs):
-		print('   ***   ', triesEntry)
 		InputBox.__init__(self, session=session, text="    ", maxSize=True, type=Input.PIN, *args, **kwargs)
 		self.zap = zap
 		self.waitTime = 15
@@ -192,7 +188,7 @@ class PinInput(InputBox):
 		self.triesEntry.tries.save()
 
 	def showTries(self):
-		self["tries"].setText("%s %s" % (_("Tries left:"), str(self.getTries())) if self.triesEntry else "")
+		self["tries"].setText(self.triesEntry and _("Tries left:") + " " + str(self.getTries() or ""))
 
 	def keyRight(self):
 		if self.zap and self["input"].getText() == "    ":

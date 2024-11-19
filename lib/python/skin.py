@@ -1,18 +1,18 @@
 import errno
 import xml.etree.ElementTree
 
-from enigma import addFont, eLabel, ePixmap, ePoint, eRect, eSize, eWidget, eWindow, eWindowStyleManager, eWindowStyleSkinned, getDesktop, gFont, getFontFaces, gRGB, BT_ALPHATEST, BT_ALPHABLEND
+from enigma import addFont, eLabel, ePixmap, ePoint, eRect, eSize, eWindow, eWindowStyleManager, eWindowStyleSkinned, getDesktop, gFont, getFontFaces, gRGB, BT_ALPHATEST, BT_ALPHABLEND
 from os.path import basename, dirname, isfile
 
 from Components.config import ConfigSubsection, ConfigText, config
 from Components.RcModel import rc_model
 from Components.Sources.Source import ObsoleteSource
-from Components.SystemInfo import BoxInfo
+from Components.SystemInfo import SystemInfo
 from Tools.Directories import SCOPE_CONFIG, SCOPE_CURRENT_LCDSKIN, SCOPE_CURRENT_SKIN, SCOPE_FONTS, SCOPE_SKIN, SCOPE_SKIN_IMAGE, resolveFilename
 from Tools.Import import my_import
 from Tools.LoadPixmap import LoadPixmap
 
-DEFAULT_SKIN = BoxInfo.getItem("HasFullHDSkinSupport") and "PLi-FullNightHD/skin.xml" or "PLi-HD/skin.xml"  # SD hardware is no longer supported by the default skin.
+DEFAULT_SKIN = SystemInfo["HasFullHDSkinSupport"] and "Aglare-FHD-NSS/skin.xml" or "PLi-HD/skin.xml"  # SD hardware is no longer supported by the default skin.
 EMERGENCY_SKIN = "skin_default/skin.xml"
 EMERGENCY_NAME = "Stone II"
 DEFAULT_DISPLAY_SKIN = "skin_default/skin_display.xml"
@@ -37,9 +37,7 @@ fonts = {  # Dictionary of predefined and skin defined font aliases.
 	"Body": BodyFont
 }
 menus = {}  # Dictionary of images associated with menu entries.
-menuicons = {}  # Dictionary of icons associated with menu items.
 parameters = {}  # Dictionary of skin parameters used to modify code behavior.
-screens = {}  # Dictionary of images associated with screen entries.
 setups = {}  # Dictionary of images associated with setup menus.
 switchPixmap = {}  # Dictionary of switch images.
 windowStyles = {}  # Dictionary of window styles for each screen ID.
@@ -195,9 +193,7 @@ def reloadSkins():
 		"Body": BodyFont
 	}
 	menus.clear()
-	menuicons.clear()
 	parameters.clear()
-	screens.clear()
 	setups.clear()
 	switchPixmap.clear()
 	InitSkins()
@@ -244,48 +240,45 @@ class SkinError(Exception):
 #
 
 
-def parseCoordinate(s, e, size=0, font=None, scale=(1, 1)):
+def parseCoordinate(s, e, size=0, font=None):
 	orig = s = s.strip()
 	if s.isdigit():  # For speed try a simple number first as these are the most common.
 		val = int(s)
 	elif s == "center":  # For speed as this can be common case.
-		return 0 if not size else (e - size) // 2
+		val = 0 if not size else (e - size) // 2
 	elif s == "e":
-		return e
+		val = e
 	elif s == "*":
 		return None
 	else:
-		if scale[0] != scale[1]:
-			e *= scale[1] / scale[0]
-			size *= scale[1] / scale[0]
 		if font is None and ("w" in s or "h" in s):
 			print("[Skin] Error: 'w' or 'h' is being used in a field where neither is valid. Input string: '%s'" % orig)
 			return 0
 		# No test on "e" because it's already a variable
 		if "center" in s:
-			center = (e - size) / 2  # noqa: F841
+			center = (e - size) / 2.0
 		if "c" in s:
-			c = e / 2  # noqa: F841 do not remove c variable
+			c = e / 2.0
 		if "w" in s:
 			s = s.replace("w", "*w")
-			w = float(fonts[font][3] * scale[1] / scale[0] if font in fonts else 0)  # noqa: F841
+			w = float(font in fonts and fonts[font][3] or 0)
 		if "h" in s:
 			s = s.replace("h", "*h")
-			h = float(fonts[font][2] * scale[1] / scale[0] if font in fonts else 0)  # noqa: F841
+			h = float(font in fonts and fonts[font][2] or 0)
 		if "%" in s:
-			s = s.replace("%", "*e / 100")  # noqa: F841
+			s = s.replace("%", "*e / 100.0")
 		if "f" in s:
-			f = getSkinFactor() if scale[0] == scale[1] else 1  # noqa: F841, only use getSkinFactor when screen.scale attribute is not present
+			f = getSkinFactor()
 		# Don't bother trying an int() conversion,
 		# because at this point that's almost certainly
 		# going to throw an exception.
-		try:  # protects against junk in the input
-			val = eval(s)
+		try: # protects against junk in the input
+			val = int(eval(s))
 		except Exception as err:
 			print("[Skin] %s '%s': Coordinate '%s', processed to '%s', cannot be evaluated!" % (type(err).__name__, err, orig, s))
 			val = 0
-	# print("[Skin] DEBUG: parseCoordinate s='%s', e='%s', size=%s, font='%s', val='%s', scale='%s'." % (s, e, size, font, val, str(scale)))
-	return int(val * scale[0] / scale[1] if scale[0] != scale[1] else val)
+	# print("[Skin] DEBUG: parseCoordinate s='%s', e='%s', size=%s, font='%s', val='%s'." % (s, e, size, font, val))
+	return val
 
 
 def getParentSize(object, desktop):
@@ -320,26 +313,6 @@ def parseValuePair(s, scale, object=None, desktop=None, size=None):
 def parsePosition(s, scale, object=None, desktop=None, size=None):
 	return ePoint(*parseValuePair(s, scale, object, desktop, size))
 
-def parseRadius(value):
-	data = [x.strip() for x in value.split(";")]
-	if len(data) == 2:
-		edges = [x.strip() for x in data[1].split(",")]
-		edgesMask = {
-			"topLeft": eWidget.RADIUS_TOP_LEFT,
-			"topRight": eWidget.RADIUS_TOP_RIGHT,
-			"top": eWidget.RADIUS_TOP,
-			"bottomLeft": eWidget.RADIUS_BOTTOM_LEFT,
-			"bottomRight": eWidget.RADIUS_BOTTOM_RIGHT,
-			"bottom": eWidget.RADIUS_BOTTOM,
-			"left": eWidget.RADIUS_LEFT,
-			"right": eWidget.RADIUS_RIGHT,
-		}
-		edgeValue = 0
-		for e in edges:
-			edgeValue += edgesMask.get(e, 0)
-		return int(data[0]), edgeValue
-	else:
-		return int(data[0]), eWidget.RADIUS_ALL
 
 def parseSize(s, scale, object=None, desktop=None):
 	return eSize(*[max(0, x) for x in parseValuePair(s, scale, object, desktop)])
@@ -407,18 +380,13 @@ def parseScale(s):
 	try:
 		val = int(s)
 	except ValueError:
-		f = getSkinFactor()  # noqa: F841
 		try:
+			s = s.replace("f", str(getSkinFactor()))
 			val = int(eval(s))
 		except Exception as err:
-			print("[Skin] parseScale: %s '%s': formula '%s' cannot be evaluated!" % (type(err).__name__, err, s))
+			print("[Skin] %s '%s': size formula '%s', processed to '%s', cannot be evaluated!" % (type(err).__name__, err, orig, s))
 			val = 0
 	return val
-
-
-def mergeScale(s1, s2):
-	#  merge ((w, w), (h, h)) with ((x, x), (y, y))
-	return ((s1[0][0] * s2[0][0], s1[0][1] * s2[0][1]), (s1[1][0] * s2[1][0], s1[1][1] * s2[1][1]))
 
 
 def loadPixmap(path, desktop, width=0, height=0):
@@ -433,7 +401,7 @@ def loadPixmap(path, desktop, width=0, height=0):
 	return pixmap
 
 
-def collectAttributes(skinAttributes, node, context, skinPath=None, ignore=(), filenames=frozenset(("pixmap", "pointer", "seek_pointer", "backgroundPixmap", "selectionPixmap", "selectionPixmapLarge", "sliderPixmap", "scrollbarSliderPicture", "scrollbarbackgroundPixmap", "scrollbarBackgroundPicture"))):
+def collectAttributes(skinAttributes, node, context, skinPath=None, ignore=(), filenames=frozenset(("pixmap", "pointer", "seek_pointer", "backgroundPixmap", "selectionPixmap", "sliderPixmap", "scrollbarSliderPicture", "scrollbarbackgroundPixmap", "scrollbarBackgroundPicture"))):
 	size = None
 	pos = None
 	font = None
@@ -481,20 +449,9 @@ class AttributeParser:
 			print("[Skin] Attribute '%s' with wrong (or unknown) value '%s' in object of type '%s'!" % (attrib, value, self.guiObject.__class__.__name__))
 
 	def applyAll(self, attrs):
-		attrs.sort(key=lambda a: {"pixmap": 1, "scale": -1}.get(a[0], 0))  # For svg pixmap scale required the size, so sort pixmap last (and scale first)
-
-		# if skin attribute "screen.resolution" is set, graphics should be scaled, so force that here
-		if attrs and attrs[-1][0] == "pixmap" and (self.scaleTuple[0][0] != self.scaleTuple[0][1] or self.scaleTuple[1][0] != self.scaleTuple[1][1]) and attrs[0][0] != "scale":
-			attrs.insert(0, ("scale", "1"))
-
+		attrs.sort(key=lambda a: {"pixmap": 1}.get(a[0], 0))  # For svg pixmap scale required the size, so sort pixmap last
 		for attrib, value in attrs:
 			self.applyOne(attrib, value)
-
-	def applyHorizontalScale(self, value):
-		return int(value) if self.scaleTuple[0][0] == self.scaleTuple[0][1] else int(int(value) * self.scaleTuple[0][0] / self.scaleTuple[0][1])
-
-	def applyVerticalScale(self, value):
-		return int(value) if self.scaleTuple[0][0] == self.scaleTuple[0][1] else int(int(value) * self.scaleTuple[1][0] / self.scaleTuple[1][1])
 
 	def conditional(self, value):
 		pass
@@ -539,29 +496,15 @@ class AttributeParser:
 
 	def secondfont(self, value):
 		self.guiObject.setSecondFont(parseFont(value, self.scaleTuple))
-		
-	def widgetBorderColor(self, value):
-		self.guiObject.setWidgetBorderColor(parseColor(value))
-
-	def widgetBorderWidth(self, value):
-		self.guiObject.setWidgetBorderWidth(self.applyVerticalScale(parseScale(value)))
 
 	def zPosition(self, value):
 		self.guiObject.setZPosition(int(value))
 
 	def itemHeight(self, value):
-		self.guiObject.setItemHeight(self.applyVerticalScale(parseScale(value)))
+		self.guiObject.setItemHeight(parseScale(value))
 
 	def itemWidth(self, value):
-		self.guiObject.setItemWidth(self.applyHorizontalScale(parseScale(value)))
-
-	def itemCornerRadius(self, value):
-		radius, edgeValue = parseRadius(value)
-		self.guiObject.setItemCornerRadius(radius, edgeValue)
-
-	def itemCornerRadiusSelected(self, value):
-		radius, edgeValue = parseRadius(value)
-		self.guiObject.setItemCornerRadiusSelected(radius, edgeValue)
+		self.guiObject.setItemWidth(parseScale(value))
 
 	def pixmap(self, value):
 		if value.endswith(".svg"): # if graphic is svg force alphatest to "blend"
@@ -573,9 +516,6 @@ class AttributeParser:
 
 	def selectionPixmap(self, value):
 		self.guiObject.setSelectionPicture(loadPixmap(value, self.desktop))
-
-	def selectionPixmapLarge(self, value):
-		self.guiObject.setSelectionPictureLarge(loadPixmap(value, self.desktop))
 
 	def sliderPixmap(self, value):
 		self.guiObject.setSliderPicture(loadPixmap(value, self.desktop))
@@ -693,17 +633,13 @@ class AttributeParser:
 		self.guiObject.setBorderColor(parseColor(value))
 
 	def borderWidth(self, value):
-		self.guiObject.setBorderWidth(self.applyVerticalScale(parseScale(value)))
-
-	def cornerRadius(self, value):
-		radius, edgeValue = parseRadius(value)
-		self.guiObject.setCornerRadius(radius, edgeValue)
+		self.guiObject.setBorderWidth(parseScale(value))
 
 	def scrollbarSliderBorderWidth(self, value):
-		self.guiObject.setScrollbarBorderWidth(self.applyHorizontalScale(parseScale(value)))
+		self.guiObject.setScrollbarSliderBorderWidth(parseScale(value))
 
 	def scrollbarWidth(self, value):
-		self.guiObject.setScrollbarWidth(self.applyHorizontalScale(parseScale(value)))
+		self.guiObject.setScrollbarWidth(parseScale(value))
 
 	def scrollbarSliderBorderColor(self, value):
 		self.guiObject.setSliderBorderColor(parseColor(value))
@@ -754,9 +690,6 @@ class AttributeParser:
 	def dividechar(self, value):
 		pass
 
-	def resolution(self, value):
-		pass
-
 
 def applySingleAttribute(guiObject, desktop, attrib, value, scale=((1, 1), (1, 1))):
 	# Is anyone still using applySingleAttribute?
@@ -776,7 +709,7 @@ def reloadWindowStyles():
 def loadSingleSkinData(desktop, screenID, domSkin, pathSkin, scope=SCOPE_CURRENT_SKIN):
 	"""Loads skin data like colors, windowstyle etc."""
 	assert domSkin.tag == "skin", "root element in skin must be 'skin'!"
-	global colors, fonts, menus, parameters, screens, setups, switchPixmap
+	global colors, fonts, menus, parameters, setups, switchPixmap
 	for tag in domSkin.findall("output"):
 		scrnID = int(tag.attrib.get("id", GUI_SKIN_ID))
 		if scrnID == GUI_SKIN_ID:
@@ -918,32 +851,14 @@ def loadSingleSkinData(desktop, screenID, domSkin, pathSkin, scope=SCOPE_CURRENT
 			except Exception as err:
 				raise SkinError("Bad parameter: '%s'" % str(err))
 	for tag in domSkin.findall("menus"):
-		for menu in tag.findall("menu"):
-			key = menu.attrib.get("key")
-			image = menu.attrib.get("image")
+		for setup in tag.findall("menu"):
+			key = setup.attrib.get("key")
+			image = setup.attrib.get("image")
 			if key and image:
 				menus[key] = image
 				# print("[Skin] DEBUG: Menu key='%s', image='%s'." % (key, image))
 			else:
 				raise SkinError("Tag menu needs key and image, got key='%s' and image='%s'" % (key, image))
-	for tag in domSkin.findall("menuicons"):
-		for menuicon in tag.findall("menuicon"):
-			key = menuicon.attrib.get("key")
-			image = menuicon.attrib.get("image")
-			if key and image:
-				menuicons[key] = image
-				# print("[Skin] DEBUG: Menu key='%s', image='%s'." % (key, image))
-			else:
-				raise SkinError("Tag 'menuicon' needs key and image, got key='%s' and image='%s'" % (key, image))
-	for tag in domSkin.findall("screens"):
-		for screen in tag.findall("screen"):
-			key = screen.attrib.get("key")
-			image = screen.attrib.get("image")
-			if key and image:
-				screens[key] = image
-				# print("[Skin] DEBUG: Screen key='%s', image='%s'." % (key, image))
-			else:
-				raise SkinError("Tag 'screen' needs key and image, got key='%s' and image='%s'" % (key, image))
 	for tag in domSkin.findall("setups"):
 		for setup in tag.findall("setup"):
 			key = setup.attrib.get("key")
@@ -1050,20 +965,19 @@ class SizeTuple(tuple):
 
 class SkinContext:
 	def __init__(self, parent=None, pos=None, size=None, font=None):
-		if parent is not None and pos is not None:
-			pos, size = parent.parse(pos, size, font)
-			self.x, self.y = pos
-			self.w, self.h = size
-			self.scale = parent.scale
-		else:
-			self.x = None
-			self.y = None
-			self.w = None
-			self.h = None
-			self.scale = ((1, 1), (1, 1))
+		if parent is not None:
+			if pos is not None:
+				pos, size = parent.parse(pos, size, font)
+				self.x, self.y = pos
+				self.w, self.h = size
+			else:
+				self.x = 0
+				self.y = 0
+				self.w = 0
+				self.h = 0
 
 	def __str__(self):
-		return "Context (%s,%s)+(%s,%s)" % (self.x, self.y, self.w, self.h)
+		return "Context (%s,%s)+(%s,%s) " % (self.x, self.y, self.w, self.h)
 
 	def parse(self, pos, size, font):
 		if pos == "fill":
@@ -1073,8 +987,8 @@ class SkinContext:
 			self.h = 0
 		else:
 			w, h = size.split(",")
-			w = parseCoordinate(w, self.w, 0, font, self.scale[0])
-			h = parseCoordinate(h, self.h, 0, font, self.scale[1])
+			w = parseCoordinate(w, self.w, 0, font)
+			h = parseCoordinate(h, self.h, 0, font)
 			if pos == "bottom":
 				pos = (self.x, self.y + self.h - h)
 				size = (self.w, h)
@@ -1096,7 +1010,7 @@ class SkinContext:
 			else:
 				size = (w, h)
 				pos = pos.split(",")
-				pos = (self.x + parseCoordinate(pos[0], self.w, size[0], font, self.scale[0]), self.y + parseCoordinate(pos[1], self.h, size[1], font, self.scale[1]))
+				pos = (self.x + parseCoordinate(pos[0], self.w, size[0], font), self.y + parseCoordinate(pos[1], self.h, size[1], font))
 		return (SizeTuple(pos), SizeTuple(size))
 
 
@@ -1109,8 +1023,8 @@ class SkinContextStack(SkinContext):
 			size = (self.w, self.h)
 		else:
 			w, h = size.split(",")
-			w = parseCoordinate(w, self.w, 0, font, self.scale[0])
-			h = parseCoordinate(h, self.h, 0, font, self.scale[1])
+			w = parseCoordinate(w, self.w, 0, font)
+			h = parseCoordinate(h, self.h, 0, font)
 			if pos == "bottom":
 				pos = (self.x, self.y + self.h - h)
 				size = (self.w, h)
@@ -1126,7 +1040,7 @@ class SkinContextStack(SkinContext):
 			else:
 				size = (w, h)
 				pos = pos.split(",")
-				pos = (self.x + parseCoordinate(pos[0], self.w, size[0], font, self.scale[0]), self.y + parseCoordinate(pos[1], self.h, size[1], font, self.scale[1]))
+				pos = (self.x + parseCoordinate(pos[0], self.w, size[0], font), self.y + parseCoordinate(pos[1], self.h, size[1], font))
 		return (SizeTuple(pos), SizeTuple(size))
 
 
@@ -1182,8 +1096,6 @@ def readSkin(screen, skin, names, desktop):
 	context.y = s.top()
 	context.w = s.width()
 	context.h = s.height()
-	resolution = tuple([int(x.strip()) for x in myScreen.attrib.get("resolution", f"{context.w},{context.h}").split(",")])
-	context.scale = ((context.w, resolution[0]), (context.h, resolution[1]))
 	del s
 	collectAttributes(screen.skinAttributes, myScreen, context, skinPath, ignore=("name",))
 	context = SkinContext(context, myScreen.attrib.get("position"), myScreen.attrib.get("size"))
@@ -1248,11 +1160,10 @@ def readSkin(screen, skin, names, desktop):
 					raise SkinError("For connection '%s' a renderer must be defined with a 'render=' attribute" % wconnection)
 			for converter in widget.findall("convert"):
 				ctype = converter.get("type")
-				nostrip = converter.get("nostrip") and converter.get("nostrip").lower() in ("1", "enabled", "nostrip", "on", "true", "yes")
 				assert ctype, "[Skin] The 'convert' tag needs a 'type' attribute!"
 				# print("[Skin] DEBUG: Converter='%s'." % ctype)
 				try:
-					parms = converter.text if nostrip else converter.text.strip()
+					parms = converter.text.strip()
 				except Exception:
 					parms = ""
 				# print("[Skin] DEBUG: Params='%s'." % parms)
@@ -1275,7 +1186,6 @@ def readSkin(screen, skin, names, desktop):
 			renderer = rendererClass()  # Instantiate renderer.
 			if source:
 				renderer.connect(source)  # Connect to source.
-				renderer.label_name = wsource or wname #allows that it can be checked a label exists in the skin
 			attributes = renderer.skinAttributes = []
 			collectAttributes(attributes, widget, context, skinPath, ignore=("render", "source"))
 			screen.renderer.append(renderer)
@@ -1310,8 +1220,6 @@ def readSkin(screen, skin, names, desktop):
 			raise SkinError("Applet failed to compile: '%s'" % str(err))
 		if widgetType == "onLayoutFinish":
 			screen.onLayoutFinish.append(code)
-		elif widgetType == "onContentChanged":
-			screen.onContentChanged.append(code)
 		else:
 			raise SkinError("Applet type '%s' is unknown" % widgetType)
 
@@ -1353,7 +1261,10 @@ def readSkin(screen, skin, names, desktop):
 			else:
 				processScreen(s[0], context)
 		layout = widget.attrib.get("layout")
-		cc = SkinContextStack if layout == "stack" else SkinContext
+		if layout == "stack":
+			cc = SkinContextStack
+		else:
+			cc = SkinContext
 		try:
 			c = cc(context, widget.attrib.get("position"), widget.attrib.get("size"), widget.attrib.get("font"))
 		except Exception as err:
@@ -1410,10 +1321,6 @@ def findWidgets(name):
 				source = widget.get("source", None)
 				if source is not None:
 					widgetSet.add(source)
-				addonConnection = widget.get("connection", None)
-				if addonConnection is not None:
-					for x in addonConnection.split(","):
-						widgetSet.add(x)
 		panels = element.findall("panel")
 		if panels is not None:
 			for panel in panels:

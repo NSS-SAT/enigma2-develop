@@ -32,7 +32,6 @@ public:
 	void setBorderColor(const gRGB &col);
 	void setBorderWidth(int size);
 	void setNoWrap(int nowrap);
-	void setAlphatest(int alphatest);
 	void clearForegroundColor();
 	int getNoWrap() { return m_nowrap; }
 
@@ -50,7 +49,6 @@ private:
 	ePoint m_shadow_offset;
 	int m_border_size;
 	int m_nowrap;
-	bool m_blend = false;
 
 	enum eLabelEvent
 	{

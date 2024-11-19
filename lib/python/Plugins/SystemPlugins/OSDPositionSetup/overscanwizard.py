@@ -8,7 +8,7 @@ from enigma import quitMainloop, eTimer, getDesktop
 import os
 
 
-class OverscanWizard(ConfigListScreen, Screen):
+class OverscanWizard(Screen, ConfigListScreen):
 	def __init__(self, session, timeOut=True):
 		if getDesktop(0).size().height() == 1080:
 			self.skin = """<screen position="fill" flags="wfNoBorder">
@@ -86,7 +86,7 @@ class OverscanWizard(ConfigListScreen, Screen):
 			self["introduction"].setText(_("It seems you did not see all the eight arrow heads. This means your TV "
 				"has overscan enabled, and is not configured properly.\n\n"
 				"Please refer to your TV's manual to find how you can disable overscan on your TV. Look for terms like 'Just fit', 'Full width', etc. "
-				"If you can't find it, ask other users at http://forums.openpli.org.\n\n"))
+				"If you can't find it, ask other users at http://nonsolosat.net.\n\n"))
 			self.list.append((_("Did you see all eight arrow heads?"), self.yes_no))
 			self.yes_no.value = True
 			self.save_new_position = False

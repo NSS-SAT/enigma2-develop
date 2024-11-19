@@ -130,7 +130,7 @@ class ServiceInfo(Screen):
 
 	def ShowServiceInformation(self):
 		if self.type == TYPE_SERVICE_INFO:
-			self.setTitle(_("Service info - service & PIDs"))
+			self["Title"].text = _("Service info - service & PIDs")
 			if self.feinfo or self.transponder_info:
 				self["key_blue"].text = self["blue"].text = _("Tuner setting values")
 			if self.session.nav.getCurrentlyPlayingServiceOrGroup():
@@ -214,10 +214,9 @@ class ServiceInfo(Screen):
 
 	def get_track_list(self):
 		if self.number_of_tracks:
-			from Components.Converter.ServiceInfo import StdAudioDesc
 
 			def create_list(i):
-				audio_desc = StdAudioDesc(self.audio.getTrackInfo(i).getDescription())
+				audio_desc = self.audio.getTrackInfo(i).getDescription()
 				audio_pid = self.audio.getTrackInfo(i).getPID()
 				audio_lang = self.audio.getTrackInfo(i).getLanguage() or _("Not defined")
 				if self.IPTV:
@@ -225,7 +224,7 @@ class ServiceInfo(Screen):
 				else:
 					return (_("Audio PID%s, codec & lang") % ((" %s") % (i + 1) if self.number_of_tracks > 1 and self.show_all else ""), "%04X (%d) - %s - %s" % (to_unsigned(audio_pid), audio_pid, audio_desc, audio_lang), TYPE_TEXT)
 
-			if not self.show_all and not self.IPTV:
+			if not self.show_all:
 				return [create_list(self.audio.getCurrentTrack())]
 			else:
 				track_list = []
@@ -239,11 +238,11 @@ class ServiceInfo(Screen):
 			if self.show_all is True:
 				self.show_all = False
 				self["key_yellow"].text = self["yellow"].text = _("Extended info") if self.IPTV else _("Extended PID info")
-				self.setTitle(_("Service info - service & Basic PID Info"))
+				self["Title"].text = _("Service info - service & Basic PID Info")
 			else:
 				self.show_all = True
 				self["key_yellow"].text = self["yellow"].text = _("Basic info") if self.IPTV else _("Basic PID info")
-				self.setTitle(_("Service info - service & Extended PID Info"))
+				self["Title"].text = _("Service info - service & Extended PID Info")
 		else:
 			self.show_all = False
 
@@ -285,15 +284,15 @@ class ServiceInfo(Screen):
 			frontendData = self.feinfo and self.feinfo.getAll(True)
 			if frontendData:
 				if self["key_blue"].text == _("Tuner setting values"):
-					self.setTitle(_("Service info - tuner setting values"))
+					self["Title"].text = _("Service info - tuner setting values")
 					self["key_blue"].text = self["blue"].text = _("Tuner live values")
 				else:
-					self.setTitle(_("Service info - tuner live values"))
+					self["Title"].text = _("Service info - tuner live values")
 					self["key_blue"].text = self["blue"].text = _("Tuner setting values")
 					frontendData = self.feinfo.getAll(False)
 				self.fillList(self.getFEData(frontendData))
 			elif self.transponder_info:
-				self.setTitle(_("Service info - tuner setting values"))
+				self["Title"].text = _("Service info - tuner setting values")
 				self["key_blue"].text = self["blue"].text = _("Tuner setting values")
 				self.fillList(self.getFEData(self.transponder_info))
 
@@ -368,7 +367,7 @@ class ServiceInfo(Screen):
 		if self.info and not self.IPTV:
 			self.show_all = True
 			from Components.Converter.PliExtraInfo import caid_data
-			self.setTitle(_("Service info - ECM Info"))
+			self["Title"].text = _("Service info - ECM Info")
 			self["key_yellow"].text = self["yellow"].text = _("Service & PIDs")
 			tlist = []
 			for caid in sorted(set(self.info.getInfoObject(iServiceInformation.sCAIDPIDs)), key=lambda x: (x[0], x[1])):

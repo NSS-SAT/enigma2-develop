@@ -1,14 +1,33 @@
-from Screens.Setup import Setup
+from Screens.Screen import Screen
 from Components.config import ConfigClock, ConfigDateTime
+from Components.ActionMap import NumberActionMap
+from Components.ConfigList import ConfigListScreen
+from Components.Sources.StaticText import StaticText
 import time
 import datetime
 
 
-class TimeDateInput(Setup):
+class TimeDateInput(ConfigListScreen, Screen):
 	def __init__(self, session, config_time=None, config_date=None):
-		self.createConfig(config_date, config_time)
-		Setup.__init__(self, session, None)
+		Screen.__init__(self, session)
 		self.setTitle(_("Date/time input"))
+		self["key_red"] = StaticText(_("Cancel"))
+		self["key_green"] = StaticText(_("OK"))
+
+		self.createConfig(config_date, config_time)
+
+		self["actions"] = NumberActionMap(["SetupActions", "OkCancelActions", "ColorActions"],
+		{
+			"ok": self.keyGo,
+			"green": self.keyGo,
+			"save": self.keyGo,
+			"red": self.keyCancel,
+			"cancel": self.keyCancel,
+		}, -2)
+
+		self.list = []
+		ConfigListScreen.__init__(self, self.list)
+		self.createSetup(self["config"])
 
 	def createConfig(self, conf_date, conf_time):
 		self.save_mask = 0
@@ -23,12 +42,13 @@ class TimeDateInput(Setup):
 		self.timeinput_date = conf_date
 		self.timeinput_time = conf_time
 
-	def createSetup(self):
+	def createSetup(self, configlist):
 		self.list = [
 			(_("Date"), self.timeinput_date),
 			(_("Time"), self.timeinput_time)
 		]
-		self["config"].list = self.list
+		configlist.list = self.list
+		configlist.l.setList(self.list)
 
 	def keyPageDown(self):
 		sel = self["config"].getCurrent()
@@ -47,7 +67,7 @@ class TimeDateInput(Setup):
 		dt = datetime.datetime(d.tm_year, d.tm_mon, d.tm_mday, mytime[0], mytime[1])
 		return int(time.mktime(dt.timetuple()))
 
-	def keySave(self):
+	def keyGo(self):
 		time = self.getTimestamp(self.timeinput_date.value, self.timeinput_time.value)
 		if self.save_mask & 1:
 			self.timeinput_time.save()

@@ -1,16 +1,11 @@
-from os.path import isfile
+from enigma import eRCInput, eTimer, eWindow  # , getDesktop
 
-from enigma import eRCInput, eTimer, eWindow, getDesktop
-
-from skin import GUI_SKIN_ID, applyAllAttributes, menus, screens, setups
+from skin import GUI_SKIN_ID, applyAllAttributes
 from Components.config import config
 from Components.GUIComponent import GUIComponent
-from Components.Pixmap import Pixmap
 from Components.Sources.Source import Source
 from Components.Sources.StaticText import StaticText
 from Tools.CList import CList
-from Tools.Directories import SCOPE_GUISKIN, resolveFilename
-from Tools.LoadPixmap import LoadPixmap
 
 # The lines marked DEBUG: are proposals for further fixes or improvements.
 # Other commented out code is historic and should probably be deleted if it is not going to be used.
@@ -23,8 +18,7 @@ class Screen(dict):
 
 	def __init__(self, session, parent=None, mandatoryWidgets=None):
 		dict.__init__(self)
-		className = self.__class__.__name__
-		self.skinName = className
+		self.skinName = self.__class__.__name__
 		self.session = session
 		self.parent = parent
 		self.mandatoryWidgets = mandatoryWidgets
@@ -33,7 +27,6 @@ class Screen(dict):
 		self.onExecBegin = []
 		self.onExecEnd = []
 		self.onLayoutFinish = []
-		self.onContentChanged = []
 		self.onShown = []
 		self.onShow = []
 		self.onHide = []
@@ -56,8 +49,6 @@ class Screen(dict):
 		self["ScreenPath"] = StaticText()
 		self.screenPath = ""  # This is the current screen path without the title.
 		self.screenTitle = ""  # This is the current screen title without the path.
-		self.handledWidgets = []
-		self.setImage(className)
 
 	def __repr__(self):
 		return str(type(self))
@@ -185,14 +176,6 @@ class Screen(dict):
 
 	title = property(getTitle, setTitle)
 
-	def setImage(self, image, source=None):
-		self.screenImage = None
-		if image and (images := {"menu": menus, "setup": setups}.get(source, screens)):
-			if (x := images.get(image, images.get("default", ""))) and isfile(x := resolveFilename(SCOPE_GUISKIN, x)):
-				self.screenImage = x
-				if self.screenImage and "Image" not in self:
-					self["Image"] = Pixmap()
-
 	def setFocus(self, o):
 		self.instance.setFocus(o.instance)
 
@@ -217,7 +200,8 @@ class Screen(dict):
 		self.desktop = desktop
 
 	def setAnimationMode(self, mode):
-		pass
+		if self.instance:
+			self.instance.setAnimationMode(mode)
 
 	def getRelatedScreen(self, name):
 		if name == "session":
@@ -233,21 +217,16 @@ class Screen(dict):
 		self.__callLaterTimer.callback.append(function)
 		self.__callLaterTimer.start(0, True)
 
-	def screenContentChanged(self):
-		for f in self.onContentChanged:
-			if not isinstance(f, type(self.close)):
-				exec(f, globals(), locals())  # Python 3
-			else:
-				f()
-
 	def applySkin(self):
-		self.scale = ((getDesktop(GUI_SKIN_ID).size().width(), getDesktop(GUI_SKIN_ID).size().width()), (getDesktop(GUI_SKIN_ID).size().height(), getDesktop(GUI_SKIN_ID).size().height()))
+		# DEBUG: baseRes = (getDesktop(GUI_SKIN_ID).size().width(), getDesktop(GUI_SKIN_ID).size().height())
+		baseRes = (720, 576)  # FIXME: A skin might have set another resolution, which should be the base res.
 		zPosition = 0
 		for (key, value) in self.skinAttributes:
-			if key in ("baseResolution", "resolution"):
-				self.scale = tuple([(self.scale[i][0], int(x)) for i, x in enumerate(value.split(","))])
+			if key == "baseResolution":
+				baseRes = tuple([int(x) for x in value.split(",")])
 			elif key == "zPosition":
 				zPosition = int(value)
+		self.scale = ((baseRes[0], baseRes[0]), (baseRes[1], baseRes[1]))
 		if not self.instance:
 			self.instance = eWindow(self.desktop, zPosition)
 		if "title" not in self.skinAttributes and self.screenTitle:
@@ -277,25 +256,19 @@ class Screen(dict):
 					if depr:
 						print("[Screen] WARNING: OBSOLETE COMPONENT '%s' USED IN SKIN. USE '%s' INSTEAD!" % (key, depr[0]))
 						print("[Screen] OBSOLETE COMPONENT WILL BE REMOVED %s, PLEASE UPDATE!" % depr[1])
-				elif not depr and key not in self.handledWidgets:
+				elif not depr:
 					print("[Screen] Warning: Skin is missing element '%s' in %s." % (key, str(self)))
 		for w in self.additionalWidgets:
 			if not updateonly:
 				w.instance = w.widget(parent)
 				# w.instance.thisown = 0
 			applyAllAttributes(w.instance, desktop, w.skinAttributes, self.scale)
-		if self.screenImage:
-			self["Image"].setPixmap(LoadPixmap(self.screenImage))
 		for f in self.onLayoutFinish:
 			if not isinstance(f, type(self.close)):
 				# exec f in globals(), locals()  # Python 2
 				exec(f, globals(), locals())  # Python 3
 			else:
 				f()
-		for key in self:  # nudge TemplatedMultiContent so receives self.scale set above
-			val = self[key]
-			if "Components.Converter.TemplatedMultiContent" in str(getattr(val, "downstream_elements", None)):
-				val.downstream_elements.changed((val.CHANGED_DEFAULT,))
 
 	def deleteGUIScreen(self):
 		for (name, val) in self.items():
@@ -330,8 +303,5 @@ class ScreenSummary(Screen):
 		if not isinstance(names, list):
 			names = [names]
 		self.skinName = ["%sSummary" % x for x in names]
-		className = self.__class__.__name__
-		if className != "ScreenSummary" and className not in self.skinName:  # e.g. if a module uses Screens.Setup.SetupSummary the skin needs to be available directly
-			self.skinName.append(className)
 		self.skinName.append("ScreenSummary")
 		self.skin = parent.__dict__.get("skinSummary", self.skin)  # If parent has a "skinSummary" defined, use that as default.

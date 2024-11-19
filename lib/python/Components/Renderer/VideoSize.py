@@ -1,5 +1,5 @@
 from Components.VariableText import VariableText
-from enigma import eLabel, iServiceInformation, eServiceReference
+from enigma import eLabel, iServiceInformation
 from Components.Renderer.Renderer import Renderer
 
 #
@@ -16,8 +16,7 @@ class VideoSize(Renderer, VariableText):
 
 	def changed(self, what):
 		service = self.source.service
-		isRef = isinstance(service, eServiceReference)
-		info = service.info() if (service and not isRef) else None
+		info = service and service.info()
 		if info is None:
 			self.text = ""
 			return

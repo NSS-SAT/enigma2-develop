@@ -1,8 +1,8 @@
 from enigma import eDVBDB, getLinkedSlotID, eDVBResourceManager
 from Screens.Screen import Screen
-from Screens.Setup import Setup
-from Components.SystemInfo import BoxInfo
+from Components.SystemInfo import SystemInfo
 from Components.ActionMap import ActionMap
+from Components.ConfigList import ConfigListScreen
 from Components.NimManager import nimmanager
 from Components.Button import Button
 from Components.Label import Label
@@ -22,43 +22,27 @@ from time import mktime, localtime, time
 from datetime import datetime
 
 
-class NimSetup(Setup, ServiceStopScreen):
-	def __init__(self, session, slotid):
-		self.slotid = slotid
-		self.nim = nimmanager.nim_slots[slotid]
-		self.nimConfig = self.nim.config
-		Setup.__init__(self, session, yellow_button={'function': self.key_yellow, 'helptext': _("Toggle Configuration Mode or AutoDisqc")},
-					   blue_button={'function': self.key_blue, 'helptext': _("Set all the settings back as they were")})
-		ServiceStopScreen.__init__(self)
-		self.setTitle(_("Setup") + " " + self.nim.friendly_full_description)
-
+class NimSetup(ConfigListScreen, ServiceStopScreen, Screen):
 	def createSimpleSetup(self, list, mode):
 		nim = self.nimConfig
-		if nim.diseqcA.value == '3600':
-			self.autodiseqc_ports = 1
+
 		if mode == "single":
 			self.singleSatEntry = (self.indent % _("Satellite"), nim.diseqcA, _("Select the satellite your dish receives from. If you are unsure select 'automatic' and the receiver will attempt to determine this for you."))
 			list.append(self.singleSatEntry)
-		else:
-			list.append((self.indent % _("Port A"), nim.diseqcA, _("Select the satellite which is connected to Port-A of your switch. If you are unsure select 'automatic' and the receiver will attempt to determine this for you. If nothing is connected to this port, select 'nothing connected'.")))
-		if mode in ("toneburst_a_b", "diseqc_a_b", "diseqc_a_b_c_d"):
-			list.append((self.indent % _("Port B"), nim.diseqcB, _("Select the satellite which is connected to Port-B of your switch. If you are unsure select 'automatic' and the receiver will attempt to determine this for you. If nothing is connected to this port, select 'nothing connected'.")))
-			if (nim.diseqcB.value == '3600'):
-				self.autodiseqc_ports = 2
-			if mode == "diseqc_a_b_c_d":
-				list.append((self.indent % _("Port C"), nim.diseqcC, _("Select the satellite which is connected to Port-C of your switch. If you are unsure select 'automatic' and the receiver will attempt to determine this for you. If nothing is connected to this port, select 'nothing connected'.")))
-				list.append((self.indent % _("Port D"), nim.diseqcD, _("Select the satellite which is connected to Port-D of your switch. If you are unsure select 'automatic' and the receiver will attempt to determine this for you. If nothing is connected to this port, select 'nothing connected'.")))
-				if (nim.diseqcC.value == '3600') or (nim.diseqcD.value == '3600'):
-					self.autodiseqc_ports = 4
-		if self.autodiseqc_ports:
-			list.append((self.indent % _("Set auto DiSEqC search order"), nim.autoDiSEqC_order_single if mode == "single" else nim.autoDiSEqC_order, _("Finetune the auto DiSEqC order to in your situation the satellites could be found faster.")))
-		if mode in ("diseqc_a_b", "diseqc_a_b_c_d"):
-			list.append((self.indent % _("Set voltage and 22KHz"), nim.simpleDiSEqCSetVoltageTone, _("Leave this set to 'yes' unless you fully understand why you are adjusting it.")))
-			list.append((self.indent % _("Send DiSEqC only on satellite change"), nim.simpleDiSEqCOnlyOnSatChange, _("Select 'yes' to only send the DiSEqC command when changing from one satellite to another, or select 'no' for the DiSEqC command to be resent on every zap.")))
-		elif mode == "single":
 			if nim.diseqcA.value in ("360", "560"):
 				list.append((self.indent % _("Use circular LNB"), nim.simpleDiSEqCSetCircularLNB, _("If you are using a Circular polarised LNB select 'yes', otherwise select 'no'.")))
 			list.append((self.indent % _("Send DiSEqC"), nim.simpleSingleSendDiSEqC, _("Only select 'yes' if you are using a multiswich that requires a DiSEqC Port-A command signal. For all other setups select 'no'.")))
+		else:
+			list.append((self.indent % _("Port A"), nim.diseqcA, _("Select the satellite which is connected to Port-A of your switch. If you are unsure select 'automatic' and the receiver will attempt to determine this for you. If nothing is connected to this port, select 'nothing connected'.")))
+
+		if mode in ("toneburst_a_b", "diseqc_a_b", "diseqc_a_b_c_d"):
+			list.append((self.indent % _("Port B"), nim.diseqcB, _("Select the satellite which is connected to Port-B of your switch. If you are unsure select 'automatic' and the receiver will attempt to determine this for you. If nothing is connected to this port, select 'nothing connected'.")))
+			if mode == "diseqc_a_b_c_d":
+				list.append((self.indent % _("Port C"), nim.diseqcC, _("Select the satellite which is connected to Port-C of your switch. If you are unsure select 'automatic' and the receiver will attempt to determine this for you. If nothing is connected to this port, select 'nothing connected'.")))
+				list.append((self.indent % _("Port D"), nim.diseqcD, _("Select the satellite which is connected to Port-D of your switch. If you are unsure select 'automatic' and the receiver will attempt to determine this for you. If nothing is connected to this port, select 'nothing connected'.")))
+			if mode != "toneburst_a_b":
+				list.append((self.indent % _("Set voltage and 22KHz"), nim.simpleDiSEqCSetVoltageTone, _("Leave this set to 'yes' unless you fully understand why you are adjusting it.")))
+				list.append((self.indent % _("Send DiSEqC only on satellite change"), nim.simpleDiSEqCOnlyOnSatChange, _("Select 'yes' to only send the DiSEqC command when changing from one satellite to another, or select 'no' for the DiSEqC command to be resent on every zap.")))
 
 	def createPositionerSetup(self, list):
 		nim = self.nimConfig
@@ -69,7 +53,7 @@ class NimSetup(Setup, ServiceStopScreen):
 		list.append((" ", nim.longitudeOrientation, _("Enter if you are in the east or west hemisphere.")))
 		list.append((self.indent % _("Latitude"), nim.latitude, _("Enter your current latitude. This is the number of degrees you are from the equator as a decimal.")))
 		list.append((" ", nim.latitudeOrientation, _("Enter if you are north or south of the equator.")))
-		if BoxInfo.getItem("CanMeasureFrontendInputPower"):
+		if SystemInfo["CanMeasureFrontendInputPower"]:
 			self.advancedPowerMeasurement = (self.indent % _("Use power measurement"), nim.powerMeasurement, _("Power management. Consult your receiver's manual for more information."))
 			list.append(self.advancedPowerMeasurement)
 			if nim.powerMeasurement.value:
@@ -112,7 +96,6 @@ class NimSetup(Setup, ServiceStopScreen):
 
 	def createSetup(self):
 		self.adaptConfigModeChoices()
-		self.autodiseqc_ports = False
 		self.list = []
 
 		self.multiType = self.configMode = self.diseqcModeEntry = self.advancedSatsEntry = self.advancedLnbsEntry = self.advancedDiseqcMode = self.advancedUsalsEntry = self.advancedLof =\
@@ -334,10 +317,10 @@ class NimSetup(Setup, ServiceStopScreen):
 			self.list.append((_("Force legacy signal stats"), self.nimConfig.force_legacy_signal_stats, _("If set to 'yes' signal values (SNR, etc) will be calculated from API V3. This is an old API version that has now been superseded.")))
 
 		self["config"].list = self.list
-		self["key_yellow"].setText(_("Auto DiSEqC") if self.autodiseqc_ports else (_("Configuration mode") if self.configMode else ""))
-		self["key_blue"].setText(self.isChanged() and _("Set default") or "")
+		self.setTextKeyYellow()
 
 	def newConfig(self):
+		self.setTextKeyBlue()
 		if self["config"].getCurrent() == self.multiType:
 			update_slots = [self.slotid]
 			from Components.NimManager import InitNimManager
@@ -352,9 +335,20 @@ class NimSetup(Setup, ServiceStopScreen):
 				self.createSetup()
 
 	def run(self):
-		if self.autodiseqc_ports:
-			self.autoDiseqcRun()
-			return False
+		if self.nimConfig.configMode.value == "simple" and self.nimConfig.diseqcMode.value in ("single", "diseqc_a_b", "diseqc_a_b_c_d") and (not self.nim.isCombined() or self.nimConfig.configModeDVBS.value):
+			autodiseqc_ports = 0
+			if self.nimConfig.diseqcMode.value == "single":
+				if self.nimConfig.diseqcA.orbital_position == 3600:
+					autodiseqc_ports = 1
+			elif self.nimConfig.diseqcMode.value == "diseqc_a_b":
+				if self.nimConfig.diseqcA.orbital_position == 3600 or self.nimConfig.diseqcB.orbital_position == 3600:
+					autodiseqc_ports = 2
+			elif self.nimConfig.diseqcMode.value == "diseqc_a_b_c_d":
+				if self.nimConfig.diseqcA.orbital_position == 3600 or self.nimConfig.diseqcB.orbital_position == 3600 or self.nimConfig.diseqcC.orbital_position == 3600 or self.nimConfig.diseqcD.orbital_position == 3600:
+					autodiseqc_ports = 4
+			if autodiseqc_ports:
+				self.autoDiseqcRun(autodiseqc_ports)
+				return False
 		if self.have_advanced and self.nim.config_mode == "advanced":
 			# fillAdvancedList resets self.list so some entries like t2mirawmode removed
 			# saveAll will save any unsaved data before self.list entries are gone
@@ -372,10 +366,9 @@ class NimSetup(Setup, ServiceStopScreen):
 		self.saveAll(reopen=True)
 		return True
 
-	def autoDiseqcRun(self):
+	def autoDiseqcRun(self, ports):
 		self.stopService()
-		order = self.nimConfig.autoDiSEqC_order_single.value if self.nimConfig.diseqcMode.value == "single" else self.nimConfig.autoDiSEqC_order.value
-		self.session.openWithCallback(self.autoDiseqcCallback, AutoDiseqc, self.slotid, self.autodiseqc_ports, self.nimConfig.simpleDiSEqCSetVoltageTone, self.nimConfig.simpleDiSEqCOnlyOnSatChange, order)
+		self.session.openWithCallback(self.autoDiseqcCallback, AutoDiseqc, self.slotid, ports, self.nimConfig.simpleDiSEqCSetVoltageTone, self.nimConfig.simpleDiSEqCOnlyOnSatChange)
 
 	def autoDiseqcCallback(self, result):
 		from Screens.Wizard import Wizard
@@ -425,7 +418,7 @@ class NimSetup(Setup, ServiceStopScreen):
 					self.list.append((self.indent % "LOF/L", currLnb.lofl, _("Consult your SCR device spec sheet for this information.")))
 					self.list.append((self.indent % "LOF/H", currLnb.lofh, _("Consult your SCR device spec sheet for this information.")))
 					self.list.append((self.indent % _("Threshold"), currLnb.threshold, _("Consult your SCR device spec sheet for this information.")))
-					if not BoxInfo.getItem("FbcTunerPowerAlwaysOn") or not self.nim.isFBCTuner():
+					if not SystemInfo["FbcTunerPowerAlwaysOn"] or not self.nim.isFBCTuner():
 						self.list.append(self.externallyPowered)
 					if not currLnb.powerinserter.value:
 						self.list.append((self.indent % _("Bootup time"), currLnb.bootuptime, _("Consult your SCR device spec sheet for this information.")))
@@ -439,7 +432,7 @@ class NimSetup(Setup, ServiceStopScreen):
 					if currLnb.positions.value > 1:
 						self.list.append(self.advancedPosition)
 					self.list.append(self.advancedSCR)
-					if not BoxInfo.getItem("FbcTunerPowerAlwaysOn") or not self.nim.isFBCTuner():
+					if not SystemInfo["FbcTunerPowerAlwaysOn"] or not self.nim.isFBCTuner():
 						self.list.append(self.externallyPowered)
 				choices = []
 				connectable = nimmanager.canConnectTo(self.slotid)
@@ -494,7 +487,7 @@ class NimSetup(Setup, ServiceStopScreen):
 						self.list.append((self.indent % _("DiSEqC 1.1 repeats"), currLnb.diseqcRepeats, _("If using multiple uncommitted switches the DiSEqC commands must be sent multiple times. Set to the number of uncommitted switches in the chain minus one.")))
 				self.list.append((self.indent % _("Sequence repeat"), currLnb.sequenceRepeat, _("Set sequence repeats if your aerial system requires this. Normally if the aerial system has been configured correctly sequence repeats will not be necessary. If yours does, recheck you have command order set correctly.")))
 				if currLnb.diseqcMode.value == "1_2":
-					if BoxInfo.getItem("CanMeasureFrontendInputPower"):
+					if SystemInfo["CanMeasureFrontendInputPower"]:
 						self.advancedPowerMeasurement = (self.indent % _("Use power measurement"), currLnb.powerMeasurement, _("Power management. Consult your receiver's manual for more information."))
 						self.list.append(self.advancedPowerMeasurement)
 						if currLnb.powerMeasurement.value:
@@ -541,7 +534,7 @@ class NimSetup(Setup, ServiceStopScreen):
 			self.fillListWithAdvancedSatEntrys(Sat)
 		self["config"].list = self.list
 
-	def keySelect(self):
+	def keyOk(self):
 		if self.isChanged():
 			self.stopService()
 		if self["config"].getCurrent() == self.advancedSelectSatsEntry:
@@ -551,7 +544,7 @@ class NimSetup(Setup, ServiceStopScreen):
 			conf = self.nimConfig.userSatellitesList
 			self.session.openWithCallback(boundFunction(self.updateConfUserSatellitesList, conf), SelectSatsEntryScreen, userSatlist=conf.value)
 		else:
-			Setup.keySelect(self)
+			self.keySave()
 
 	def updateConfUserSatellitesList(self, conf, val=None):
 		if val is not None:
@@ -603,36 +596,58 @@ class NimSetup(Setup, ServiceStopScreen):
 		else:
 			self.restartPrevService()
 
-	def changedEntry(self):
-		current = self["config"].getCurrent()
-		if current[1].isChanged():
-			self.manipulatedItems.append(current)  # keep track of all manipulated items including ones that have been removed from self["config"].list
-		elif current in self.manipulatedItems:
-			self.manipulatedItems.remove(current)
-		if isinstance(current[1], (ConfigBoolean, ConfigSelection)):
-			self.createSetup()
-		Setup.changedEntry(self)  # force summary update immediately, not just on select/deselect
+	def __init__(self, session, slotid):
+		Screen.__init__(self, session)
+		self.list = []
+		ServiceStopScreen.__init__(self)
+		ConfigListScreen.__init__(self, self.list)
+
+		self["key_red"] = StaticText(_("Cancel"))
+		self["key_green"] = StaticText(_("Save"))
+		self["key_yellow"] = StaticText("")
+		self["key_blue"] = StaticText("")
+		self["description"] = Label("")
+		self["actions"] = ActionMap(["SetupActions", "SatlistShortcutAction"],
+		{
+			"ok": self.keyOk,
+			"save": self.keySave,
+			"cancel": self.keyCancel,
+			"changetype": self.changeConfigurationMode,
+			"nothingconnected": self.nothingConnectedShortcut
+		}, -2)
+
+		self.slotid = slotid
+		self.nim = nimmanager.nim_slots[slotid]
+		self.nimConfig = self.nim.config
+		self.createSetup()
+		self.setTitle(_("Setup") + " " + self.nim.friendly_full_description)
 
 	def keyLeft(self):
 		if self.nim.isFBCLink() and self["config"].getCurrent() in (self.advancedLof, self.advancedConnected):
 			return
-		Setup.keyLeft(self)
+		ConfigListScreen.keyLeft(self)
 		if self["config"].getCurrent() in (self.advancedSelectSatsEntry, self.selectSatsEntry):
-			self.keySelect()
+			self.keyOk()
 		else:
 			self.newConfig()
+
+	def setTextKeyYellow(self):
+		self["key_yellow"].setText((self.nimConfig.configMode.value == "simple" and self.nimConfig.diseqcMode.value in ("single", "diseqc_a_b", "diseqc_a_b_c_d") and (not self.nim.isCombined() or self.nimConfig.configModeDVBS.value)) and _("Auto DiSEqC") or self.configMode and _("Configuration mode") or "")
+
+	def setTextKeyBlue(self):
+		self["key_blue"].setText(self.isChanged() and _("Set default") or "")
 
 	def keyRight(self):
 		if self.nim.isFBCLink() and self["config"].getCurrent() in (self.advancedLof, self.advancedConnected):
 			return
-		Setup.keyRight(self)
+		ConfigListScreen.keyRight(self)
 		if self["config"].getCurrent() in (self.advancedSelectSatsEntry, self.selectSatsEntry):
-			self.keySelect()
+			self.keyOk()
 		else:
 			self.newConfig()
 
 	def handleKeyFileCallback(self, answer):
-		Setup.handleKeyFileCallback(self, answer)
+		ConfigListScreen.handleKeyFileCallback(self, answer)
 		self.newConfig()
 
 	def keyCancel(self):
@@ -705,18 +720,20 @@ class NimSetup(Setup, ServiceStopScreen):
 		self.saveAll()
 		self.restartPrevService()
 
-	def key_yellow(self):
-		if self.autodiseqc_ports:
-			self.autoDiseqcRun()
+	def changeConfigurationMode(self):
+		if self.nimConfig.configMode.value == "simple" and self.nimConfig.diseqcMode.value in ("single", "diseqc_a_b", "diseqc_a_b_c_d") and (not self.nim.isCombined() or self.nimConfig.configModeDVBS.value):
+			self.autoDiseqcRun(self.nimConfig.diseqcMode.value == "diseqc_a_b_c_d" and 4 or self.nimConfig.diseqcMode.value == "diseqc_a_b" and 2 or 1)
 		elif self.configMode:
 			self.nimConfig.configMode.selectNext()
 			self["config"].invalidate(self.configMode)
+			self.setTextKeyBlue()
 			self.createSetup()
 
-	def key_blue(self):
+	def nothingConnectedShortcut(self):
 		if self.isChanged():
 			for x in self["config"].list:
 				x[1].cancel()
+			self.setTextKeyBlue()
 			self.createSetup()
 
 	def countrycodeToCountry(self, cc):
@@ -733,8 +750,6 @@ class NimSetup(Setup, ServiceStopScreen):
 class NimSelection(Screen):
 	def __init__(self, session):
 		Screen.__init__(self, session)
-
-		self["key_info"] = StaticText(_("INFO"))
 
 		self.list = [None] * nimmanager.getSlotCount()
 		self["nimlist"] = List(self.list)
@@ -943,10 +958,12 @@ class SelectSatsEntryScreen(Screen):
 		self["list"] = SelectionList(sat_list, enableWrapAround=True)
 		self["setupActions"] = ActionMap(["SetupActions", "ColorActions"],
 		{
+			"red": self.cancel,
+			"green": self.save,
 			"yellow": self.sortBy,
 			"blue": self["list"].toggleAllSelection,
 			"save": self.save,
-			"cancel": self.close,
+			"cancel": self.cancel,
 			"ok": self["list"].toggleSelection,
 		}, -2)
 		self.setTitle(_("Select satellites"))
@@ -954,6 +971,9 @@ class SelectSatsEntryScreen(Screen):
 	def save(self):
 		val = [x[0][1] for x in self["list"].list if x[0][3]]
 		self.close(str(val))
+
+	def cancel(self):
+		self.close(None)
 
 	def sortBy(self):
 		lst = self["list"].list

@@ -1,17 +1,41 @@
-from Screens.Setup import Setup
+from Screens.Screen import Screen
 from Screens.LocationBox import MovieLocationBox, TimeshiftLocationBox
 from Screens.MessageBox import MessageBox
 from Components.Label import Label
 from Components.config import config, ConfigSelection
+from Components.ConfigList import ConfigListScreen
+from Components.ActionMap import ActionMap
 from Tools.Directories import fileExists
 from Components.UsageConfig import preferredPath
 
 
-class RecordPathsSettings(Setup):
+class RecordPathsSettings(ConfigListScreen, Screen):
+	skin = """
+		<screen name="RecordPathsSettings" position="160,150" size="450,200" title="Recording paths">
+			<ePixmap pixmap="buttons/red.png" position="10,0" size="140,40" alphatest="on" />
+			<ePixmap pixmap="buttons/green.png" position="300,0" size="140,40" alphatest="on" />
+			<widget source="key_red" render="Label" position="10,0" zPosition="1" size="140,40" font="Regular;20" halign="center" valign="center" backgroundColor="#9f1313" transparent="1" />
+			<widget source="key_green" render="Label" position="300,0" zPosition="1" size="140,40" font="Regular;20" halign="center" valign="center" backgroundColor="#1f771f" transparent="1" />
+			<widget name="config" position="10,44" size="430,146" />
+		</screen>"""
+
 	def __init__(self, session):
-		self.createConfig()
-		Setup.__init__(self, session, None)
+		from Components.Sources.StaticText import StaticText
+		Screen.__init__(self, session)
+		self["key_red"] = StaticText(_("Cancel"))
+		self["key_green"] = StaticText(_("Save"))
 		self.setTitle(_("Recording paths"))
+		ConfigListScreen.__init__(self, [])
+		self.initConfigList()
+
+		self["setupActions"] = ActionMap(["SetupActions", "ColorActions", "MenuActions"],
+		{
+			"green": self.save,
+			"red": self.keyCancel,
+			"cancel": self.keyCancel,
+			"ok": self.ok,
+			"menu": self.closeRecursive,
+		}, -2)
 
 	def checkReadWriteDir(self, configele):
 		value = configele.value
@@ -28,7 +52,7 @@ class RecordPathsSettings(Setup):
 				)
 			return False
 
-	def createConfig(self):
+	def initConfigList(self):
 		self.styles = [("<default>", _("<Default movie location>")), ("<current>", _("<Current movielist location>")), ("<timer>", _("<Last timer location>"))]
 		styles_keys = [x[0] for x in self.styles]
 		tmp = config.movielist.videodirs.value
@@ -64,7 +88,6 @@ class RecordPathsSettings(Setup):
 		self.instantrec_dirname.addNotifier(self.checkReadWriteDir, initial_call=False, immediate_feedback=False)
 		self.timeshift_dirname.addNotifier(self.checkReadWriteDir, initial_call=False, immediate_feedback=False)
 
-	def createSetup(self):
 		self.list = []
 		if config.usage.setup_level.index >= 2:
 			self.default_entry = (_("Default movie location"), self.default_dirname)
@@ -80,7 +103,7 @@ class RecordPathsSettings(Setup):
 		self.list.append(self.timeshift_entry)
 		self["config"].setList(self.list)
 
-	def keySelect(self):
+	def ok(self):
 		currentry = self["config"].getCurrent()
 		self.lastvideodirs = config.movielist.videodirs.value
 		self.lasttimeshiftdirs = config.usage.allowed_timeshift_paths.value
@@ -155,7 +178,7 @@ class RecordPathsSettings(Setup):
 			if self.entrydirname.last_value != res:
 				self.checkReadWriteDir(self.entrydirname)
 
-	def keySave(self):
+	def save(self):
 		currentry = self["config"].getCurrent()
 		if self.checkReadWriteDir(currentry[1]):
 			config.usage.default_path.value = self.default_dirname.value

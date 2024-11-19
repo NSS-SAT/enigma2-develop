@@ -1,5 +1,5 @@
 from Components.config import config, ConfigSelection, ConfigSubDict, ConfigYesNo
-from Components.SystemInfo import BoxInfo
+from Components.SystemInfo import SystemInfo
 from Tools.CList import CList
 from Tools.HardwareInfo import HardwareInfo
 import os
@@ -74,13 +74,13 @@ class VideoHardware:
 		"640x480": {60: "640x480"}
 	}
 
-	if BoxInfo.getItem("HasScart"):
+	if SystemInfo["HasScart"]:
 		modes["Scart"] = ["PAL", "NTSC", "Multi"]
-	elif BoxInfo.getItem("HasComposite"):
+	elif SystemInfo["HasComposite"]:
 		modes["RCA"] = ["576i", "PAL", "NTSC", "Multi"]
-	if BoxInfo.getItem("HasYPbPr"):
+	if SystemInfo["HasYPbPr"]:
 		modes["YPbPr"] = ["720p", "1080i", "576p", "480p", "576i", "480i"]
-	if BoxInfo.getItem("Has2160p"):
+	if SystemInfo["Has2160p"]:
 		modes["DVI"] = ["720p", "1080p", "2160p", "1080i", "576p", "480p", "576i", "480i"]
 	else:
 		modes["DVI"] = ["720p", "1080p", "2160p", "2160p30", "1080i", "576p", "480p", "576i", "480i"]
@@ -222,7 +222,7 @@ class VideoHardware:
 		except IOError:
 			print("[VideoHardware] writing initial videomode to /etc/videomode failed.")
 
-		if BoxInfo.getItem("Has24hz"):
+		if SystemInfo["Has24hz"]:
 			try:
 				open("/proc/stb/video/videomode_24hz", "w").write(mode_24)
 			except IOError:
@@ -296,12 +296,12 @@ class VideoHardware:
 				ratelist = []
 				for rate in rates:
 					if rate == "auto":
-						if BoxInfo.getItem("Has24hz"):
+						if SystemInfo["Has24hz"]:
 							ratelist.append((rate, mode == "2160p30" and "auto (25Hz/30Hz/24Hz)" or "auto (50Hz/60Hz/24Hz)"))
 					else:
 						ratelist.append((rate, rate == "multi" and (mode == "2160p30" and "multi (25Hz/30Hz)" or "multi (50Hz/60Hz)") or rate))
 				config.av.videorate[mode] = ConfigSelection(choices=ratelist)
-		config.av.videoport = ConfigSelection(default="DVI", choices=lst)
+		config.av.videoport = ConfigSelection(choices=lst)
 
 	def setConfiguredMode(self):
 		port = config.av.videoport.value

@@ -5,14 +5,11 @@ class VariableText:
 		object.__init__(self)
 		self.message = ""
 		self.instance = None
-		self.onChanged = []
 
 	def setText(self, text):
 		self.message = text
 		if self.instance:
-			self.instance.setText(str(self.message) or "")
-		for x in self.onChanged:
-			x()
+			self.instance.setText(self.message or "")
 
 	def setMarkedPos(self, pos):
 		if self.instance:

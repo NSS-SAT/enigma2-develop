@@ -64,13 +64,19 @@ class MediaPlayerSettings(ConfigListScreen, Screen):
 		self.skinName = ["MediaPlayerSettings", "Setup"]
 		self.setTitle(_("Edit settings"))
 
-		ConfigListScreen.__init__(self, [], session, fullUI=True)
+		self["key_red"] = StaticText(_("Cancel"))
+		self["key_green"] = StaticText(_("Save"))
+
+		ConfigListScreen.__init__(self, [], session)
 		self.parent = parent
 		self.initConfigList()
 		config.mediaplayer.saveDirOnExit.addNotifier(self.initConfigList)
 
-		self["setupActions"] = ActionMap(["SetupActions"],
+		self["setupActions"] = ActionMap(["SetupActions", "ColorActions"],
 		{
+			"green": self.keySave,
+			"red": self.keyCancel,
+			"cancel": self.keyCancel,
 			"ok": self.ok,
 		}, -2)
 

@@ -254,10 +254,10 @@ int eDVBSubtitleParser::subtitle_process_pixel_data(subtitle_region *region, sub
 	return 0;
 }
 
-int eDVBSubtitleParser::subtitle_process_segment(uint8_t *segment, bool isBufferProcess)
+int eDVBSubtitleParser::subtitle_process_segment(uint8_t *segment)
 {
 	int segment_type, page_id, segment_length, processed_length;
-	if (*segment++ !=  DVB_SUB_SYNC_BYTE)
+	if (*segment++ !=  0x0F)
 	{
 		eDebug("[eDVBSubtitleParser] out of sync.");
 		return -1;
@@ -267,9 +267,9 @@ int eDVBSubtitleParser::subtitle_process_segment(uint8_t *segment, bool isBuffer
 	page_id |= *segment++;
 	segment_length  = *segment++ << 8;
 	segment_length |= *segment++;
-	if (segment_type == DVB_SUB_SEGMENT_STUFFING)
+	if (segment_type == 0xFF)
 		return segment_length + 6;
-	if (page_id != m_composition_page_id && page_id != m_ancillary_page_id && !isBufferProcess)
+	if (page_id != m_composition_page_id && page_id != m_ancillary_page_id)
 		return segment_length + 6;
 
 	subtitle_page *page, **ppage;
@@ -288,7 +288,7 @@ int eDVBSubtitleParser::subtitle_process_segment(uint8_t *segment, bool isBuffer
 
 	switch (segment_type)
 	{
-	case DVB_SUB_SEGMENT_PAGE_COMPOSITION:
+	case 0x10: // page composition segment
 	{
 		int page_time_out = *segment++; processed_length++;
 		int page_version_number = *segment >> 4;
@@ -380,7 +380,7 @@ int eDVBSubtitleParser::subtitle_process_segment(uint8_t *segment, bool isBuffer
 
 		break;
 	}
-	case DVB_SUB_SEGMENT_REGION_COMPOSITION:
+	case 0x11: // region composition segment
 	{
 		int region_id = *segment++; processed_length++;
 		int version_number = *segment >> 4;
@@ -518,7 +518,7 @@ int eDVBSubtitleParser::subtitle_process_segment(uint8_t *segment, bool isBuffer
 
 		break;
 	}
-	case DVB_SUB_SEGMENT_CLUT_DEFINITION:
+	case 0x12: // CLUT definition segment
 	{
 		int CLUT_id, CLUT_version_number;
 		subtitle_clut *clut, **pclut;
@@ -620,7 +620,7 @@ int eDVBSubtitleParser::subtitle_process_segment(uint8_t *segment, bool isBuffer
 		}
 		break;
 	}
-	case DVB_SUB_SEGMENT_OBJECT_DATA:
+	case 0x13: // object data segment
 	{
 		int object_id;
 		int object_coding_method;
@@ -717,7 +717,7 @@ int eDVBSubtitleParser::subtitle_process_segment(uint8_t *segment, bool isBuffer
 		}
 		break;
 	}
-	case DVB_SUB_SEGMENT_DISPLAY_DEFINITION:
+	case 0x14: // display definition segment
 	{
 		if (segment_length > 4)
 		{
@@ -749,12 +749,12 @@ int eDVBSubtitleParser::subtitle_process_segment(uint8_t *segment, bool isBuffer
 			eDebug("[eDVBSubtitleParser] display definition segment to short %d!", segment_length);
 		break;
 	}
-	case DVB_SUB_SEGMENT_END_OF_DISPLAY_SET:
+	case 0x80: // end of display set segment
 	{
 		subtitle_redraw_all();
 		m_seen_eod = true;
 	}
-	case DVB_SUB_SEGMENT_STUFFING:
+	case 0xFF: // stuffing
 		break;
 	default:
 		eDebug("[eDVBSubtitleParser] unhandled segment type %02x", segment_type);
@@ -787,7 +787,7 @@ void eDVBSubtitleParser::subtitle_process_pes(uint8_t *pkt, int len)
 
 		m_seen_eod = false;
 
-		while (len && *pkt == DVB_SUB_SYNC_BYTE)
+		while (len && *pkt == 0x0F)
 		{
 			int l = subtitle_process_segment(pkt);
 			if (l < 0)
@@ -799,34 +799,6 @@ void eDVBSubtitleParser::subtitle_process_pes(uint8_t *pkt, int len)
 		if (len && *pkt != 0xFF)
 			eDebug("[eDVBSubtitleParser] strange data at the end");
 	}
-}
-
-void eDVBSubtitleParser::processBuffer(uint8_t *data, size_t len, pts_t pts)
-{
-	m_show_time = pts;
-
-	if (*data != 0x20) {
-		eWarning("[eDVBSubtitleParser] Tried to handle a PES packet private data that isn't a subtitle packet (does not start with 0x20)");
-		return;
-	}
-
-	data++; len--; // data identifier
-	data++; len--; // stream id;
-
-
-	m_seen_eod = false;
-	while (len && *data == DVB_SUB_SYNC_BYTE)
-	{
-		int l = subtitle_process_segment(data, true);
-		if (l < 0)
-			break;
-		data += l;
-		len -= l;
-	}
-
-	if (len && *data != DVB_SUB_SEGMENT_STUFFING)
-		eDebug("[eDVBSubtitleParser] strange data at the end");
-
 }
 
 
@@ -1094,10 +1066,6 @@ void eDVBSubtitleParser::subtitle_redraw(int page_id)
 }
 
 DEFINE_REF(eDVBSubtitleParser);
-
-eDVBSubtitleParser::eDVBSubtitleParser()
-	:m_pages(0), m_display_size(720,576)
-{ }
 
 eDVBSubtitleParser::eDVBSubtitleParser(iDVBDemux *demux)
 	:m_pages(0), m_display_size(720,576)

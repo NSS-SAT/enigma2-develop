@@ -17,17 +17,15 @@ class MessageBox(Screen):
 	def __init__(self, session, text, type=TYPE_YESNO, timeout=-1, close_on_any_key=False, default=True, enable_input=True, msgBoxID=None, picon=None, simple=False, list=[], timeout_default=None, title=None):
 		self.type = type
 		Screen.__init__(self, session)
-		self.skinName = ["MessageBox"]
 		if simple:
-			self.skinName = ["MessageBoxSimple"] + self.skinName
+			self.skinName = "MessageBoxSimple"
 
 		self.msgBoxID = msgBoxID
 
+		self["autoresize"] = Label("") #do not remove, used for autoResize()
 		self["text"] = Label(text)
 		self["Text"] = StaticText(text)
 		self["selectedChoice"] = StaticText()
-
-		self["key_help"] = StaticText(_("HELP"))
 
 		self.text = text
 		self.close_on_any_key = close_on_any_key
@@ -162,7 +160,10 @@ class MessageBox(Screen):
 		self.stopTimer()
 
 	def __repr__(self):
-		return "%s(%s)" % (str(type(self)), self.text if hasattr(self, "text") else "<title>")
+		return str(type(self)) + "(" + self.text + ")"
 
 	def getListWidth(self):
-		return self["list"].instance.getMaxItemTextWidth()
+		def getListLineTextWidth(text):
+			self["autoresize"].setText(text)
+			return self["autoresize"].getSize()[0]
+		return max([getListLineTextWidth(line[0]) for line in self.list]) if self.list else 0

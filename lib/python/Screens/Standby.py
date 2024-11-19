@@ -9,7 +9,7 @@ from Components.config import config
 from Components.AVSwitch import AVSwitch
 from Components.Console import Console
 from Components.ImportChannels import ImportChannels
-from Components.SystemInfo import BoxInfo
+from Components.SystemInfo import SystemInfo
 from Components.Sources.StreamService import StreamServiceList
 from Components.Task import job_manager
 from Tools.Directories import mediafilesInUse
@@ -107,9 +107,7 @@ class StandbyScreen(Screen):
 			del self.session.pip
 		self.session.pipshown = False
 
-		self.infoBarInstance and hasattr(self.infoBarInstance, "sleepTimer") and self.infoBarInstance.sleepTimer.stop()
-
-		if BoxInfo.getItem("ScartSwitch"):
+		if SystemInfo["ScartSwitch"]:
 			self.avswitch.setInput("SCART")
 		else:
 			self.avswitch.setInput("AUX")
@@ -343,7 +341,7 @@ class TryQuitMainloop(MessageBox):
 				if not inStandby:
 					if os.path.exists("/usr/script/standby_enter.sh"):
 						Console().ePopen("/usr/script/standby_enter.sh")
-					if BoxInfo.getItem("HasHDMI-CEC") and config.hdmicec.enabled.value and ((config.hdmicec.control_tv_standby.value and config.hdmicec.next_boxes_detect.value) or config.hdmicec.handle_deepstandby_events.value != "no"):
+					if SystemInfo["HasHDMI-CEC"] and config.hdmicec.enabled.value and ((config.hdmicec.control_tv_standby.value and config.hdmicec.next_boxes_detect.value) or config.hdmicec.handle_deepstandby_events.value != "no"):
 						if config.hdmicec.control_tv_standby.value and config.hdmicec.next_boxes_detect.value:
 							import Components.HdmiCec
 							Components.HdmiCec.hdmi_cec.secondBoxActive()

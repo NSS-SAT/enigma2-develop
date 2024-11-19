@@ -35,8 +35,7 @@ class PluginComponent:
 		if plugin in self.pluginList:
 			self.pluginList.remove(plugin)
 		for x in plugin.where:
-			if x in self.plugins:
-				self.plugins[x].remove(plugin)
+			self.plugins[x].remove(plugin)
 			if x == PluginDescriptor.WHERE_AUTOSTART:
 				plugin(reason=1)
 
@@ -138,16 +137,6 @@ class PluginComponent:
 		for p in self.getPlugins(PluginDescriptor.WHERE_MENU):
 			res += p(menuid)
 		return res
-		
-	def getDescriptionForMenuEntryID(self, menuid, entryid ):
-		for p in self.getPlugins(PluginDescriptor.WHERE_MENU):
-			if p(menuid) and isinstance(p(menuid), (list,tuple)):
-				if p(menuid)[0][2] == entryid:
-					return p.description
-		return None
-		
-	def getPluginsForMenuWithDescription(self, menuid):
-		return [(x[0], p.description) for p in self.getPlugins(PluginDescriptor.WHERE_MENU) if (x := p(menuid))]
 
 	def clearPluginList(self):
 		self.pluginList = []

@@ -53,10 +53,6 @@ class GetEcmInfo:
 	def getInfo(self, member, ifempty=''):
 		self.pollEcmData()
 		return str(info.get(member, ifempty))
-	
-	def getInfoRaw(self):
-		self.pollEcmData()
-		return info
 
 	def getText(self):
 		global ecm

@@ -4,7 +4,6 @@ from json import load
 from os import listdir
 from time import altzone, gmtime, strftime
 from urllib.request import urlopen
-from email.utils import parsedate_to_datetime
 
 from enigma import eTimer, eDVBDB
 from Screens.ChoiceBox import ChoiceBox
@@ -77,7 +76,7 @@ class UpdatePlugin(Screen, ProtectedScreen):
 		message = None
 		abort = False
 		picon = MessageBox.TYPE_ERROR
-		url = "https://openpli.org/trafficlight"
+		url = "https://nonsolosat.net"
 
 		# try to fetch the trafficlight json from the website
 		try:
@@ -118,15 +117,15 @@ class UpdatePlugin(Screen, ProtectedScreen):
 					elif 'en_EN' in message:
 						message = message['en_EN']
 					else:
-						message = _("The current image might not be stable.\nFor more information see %s.") % ("https://forums.openpli.org")
+						message = _("The current image might not be stable.\nFor more information see %s.") % ("https://nonsolosat.net")
 
 			except Exception as er:
 				print("[UpdatePlugin] status error", er)
-				message = _("The current image might not be stable.\nFor more information see %s.") % ("https://forums.openpli.org")
+				message = _("The current image might not be stable.\nFor more information see %s.") % ("https://nonsolosat.net")
 
 		# or display a generic warning if fetching failed
 		else:
-			message = _("The status of the current image could not be checked because %s can not be reached.") % ("https://openpli.org")
+			message = _("The status of the current image could not be checked because %s can not be reached.") % ("https://nonsolosat.net")
 
 		# show the user the message first
 		if message is not None:
@@ -143,12 +142,11 @@ class UpdatePlugin(Screen, ProtectedScreen):
 	def getLatestImageTimestamp(self):
 		def gettime(url):
 			try:
-				print('[UpdatePlugin] Trying to fetch time from %s' % url)
-				return strftime("%Y-%m-%d %H:%M:%S", gmtime(int(parsedate_to_datetime(urlopen("%s/Packages.gz" % url, timeout=1).headers['last-modified']).timestamp()) - altzone))
+				return strftime("%Y-%m-%d %H:%M:%S", gmtime(timegm(urlopen("%s/Packages.gz" % url).info().getdate('Last-Modified')) - altzone))
 			except Exception as er:
 				print('[UpdatePlugin] Error in get timestamp', er)
 				return ""
-		return max([gettime(open("/etc/opkg/%s" % file, "r").readlines()[0].split()[2]) for file in listdir("/etc/opkg") if not file.startswith("3rd-party") and file not in ("arch.conf", "opkg.conf", "picons-feed.conf")])
+		return sorted([gettime(open("/etc/opkg/%s" % file, "r").readlines()[0].split()[2]) for file in listdir("/etc/opkg") if not file.startswith("3rd-party") and file not in ("arch.conf", "opkg.conf", "picons-feed.conf")], reverse=True)[0]
 
 	def startActualUpdate(self, answer):
 		if answer:
