@@ -218,7 +218,7 @@ self.clearSelectedKeys()
 self.selectKey("LEFT")
 self.selectKey("RIGHT")
 			</code>
-		</step>
+		<!--</step>
 		<step id="channels">
 			<condition>
 from Components.NimManager import nimmanager
@@ -244,7 +244,7 @@ self.clearSelectedKeys()
 self.selectKey("LEFT")
 self.selectKey("RIGHT")
 			</code>
-		</step>
+		</step>-->
 		<step id="doscan">
 			<text value="What type of service scan do you want?"/>
 			<condition>
@@ -256,7 +256,7 @@ self.condition = nimmanager.somethingConnected()
 self.clearSelectedKeys()
 self.selectKey("OK")
 			</code>
-		</step>
+		<!--</step>
 		<step id="plugins">
 			<condition>
 self.condition = config.misc.installwizard.hasnetwork.value and config.misc.installwizard.opkgloaded.value
@@ -267,7 +267,7 @@ self.condition = config.misc.installwizard.hasnetwork.value and config.misc.inst
 self.clearSelectedKeys()
 self.selectKey("OK")
 			</code>
-		</step>
+		</step>-->
 		<step id="setup">
 			<text value="Please setup the following basic configs!"/>
 			<config screen="Setup" module="Setup" args="wizardsetup" type="ConfigList"/>
