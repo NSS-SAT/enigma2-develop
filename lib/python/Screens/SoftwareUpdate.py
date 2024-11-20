@@ -77,7 +77,7 @@ class UpdatePlugin(Screen, ProtectedScreen):
 		message = None
 		abort = False
 		picon = MessageBox.TYPE_ERROR
-		url = "https://openpli.org/trafficlight"
+		url = "https://nonsolosat.net/trafficlight"
 
 		# try to fetch the trafficlight json from the website
 		try:
@@ -118,15 +118,15 @@ class UpdatePlugin(Screen, ProtectedScreen):
 					elif 'en_EN' in message:
 						message = message['en_EN']
 					else:
-						message = _("The current image might not be stable.\nFor more information see %s.") % ("https://forums.openpli.org")
+						message = _("The current image might not be stable.\nFor more information see %s.") % ("https://forums.nonsolosat.net")
 
 			except Exception as er:
 				print("[UpdatePlugin] status error", er)
-				message = _("The current image might not be stable.\nFor more information see %s.") % ("https://forums.openpli.org")
+				message = _("The current image might not be stable.\nFor more information see %s.") % ("https://forums.nonsolosat.net")
 
 		# or display a generic warning if fetching failed
 		else:
-			message = _("The status of the current image could not be checked because %s can not be reached.") % ("https://openpli.org")
+			message = _("The status of the current image could not be checked because %s can not be reached.") % ("https://nonsolosat.net")
 
 		# show the user the message first
 		if message is not None:
