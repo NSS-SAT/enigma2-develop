@@ -35,7 +35,7 @@ class About(Screen):
 		AboutText = _("Hardware: ") + about.getHardwareTypeString() + "\n"
 		cpu = about.getCPUInfoString()
 		AboutText += _("CPU: ") + cpu + "\n"
-		AboutText += _("Nonsolosat: ") + about.getImageTypeString() + "\n"
+		AboutText += _("Image:Nonsolosat ") + about.getImageTypeString() + "\n"
 		AboutText += _("Build date: ") + about.getBuildDateString() + "\n"
 		AboutText += _("Last update: ") + about.getUpdateDateString() + "\n"
 		AboutText += _("Forum: https://www.nonsolosat.net") + "\n"
