@@ -1,13 +1,20 @@
-from Components.Harddisk import harddiskmanager
+# from Components.About import GetIPsFromNetworkInterfaces
 from Components.Console import Console
-from Components.config import ConfigSubsection, ConfigYesNo, config, ConfigSelection, ConfigText, ConfigNumber, ConfigSet, ConfigLocations, ConfigSelectionNumber, ConfigClock, ConfigSlider, ConfigEnableDisable, ConfigSubDict, ConfigDictionarySet, ConfigInteger, ConfigPassword, ConfigIP
-from Tools.Directories import defaultRecordingLocation
-from enigma import setTunerTypePriorityOrder, setPreferredTuner, setSpinnerOnOff, setEnableTtCachingOnOff, eEnv, eDVBDB, Misc_Options, eBackgroundFileEraser, eServiceEvent, eDVBLocalTimeHandler, eEPGCache
-from Components.About import GetIPsFromNetworkInterfaces
+from Components.Harddisk import harddiskmanager
 from Components.NimManager import nimmanager
 from Components.Renderer.FrontpanelLed import ledPatterns, PATTERN_ON, PATTERN_OFF, PATTERN_BLINK
 from Components.ServiceList import refreshServiceList, redrawServiceList
 from Components.SystemInfo import BoxInfo
+from Components.config import ConfigIP, ConfigSet, ConfigLocations
+from Components.config import ConfigSelection, ConfigText, ConfigNumber
+from Components.config import ConfigSelectionNumber, ConfigClock, ConfigPassword
+from Components.config import ConfigSlider, ConfigEnableDisable, ConfigInteger
+from Components.config import ConfigSubDict, ConfigDictionarySet
+from Components.config import ConfigSubsection, ConfigYesNo, config
+from Tools.Directories import defaultRecordingLocation, fileExists
+from enigma import eBackgroundFileEraser, eServiceEvent, eDVBLocalTimeHandler, eEPGCache
+from enigma import setEnableTtCachingOnOff, eEnv, eDVBDB, Misc_Options
+from enigma import setTunerTypePriorityOrder, setPreferredTuner, setSpinnerOnOff
 import os
 import time
 
@@ -16,8 +23,98 @@ originalAudioTracks = "orj dos ory org esl qaa qaf und qae mis mul ORY ORJ Audio
 visuallyImpairedCommentary = "NAR qad"
 
 
+def mountipkpth():
+	myusb = myusb1 = myhdd = myhdd2 = mysdcard = mysd = myuniverse = myba = mydata = ''
+	mdevices = []
+	myusb = None
+	myusb1 = None
+	myhdd = None
+	myhdd2 = None
+	mysdcard = None
+	mysd = None
+	myuniverse = None
+	myba = None
+	mydata = None
+	if fileExists('/proc/mounts'):
+		f = open('/proc/mounts', 'r')
+		for line in f.readlines():
+			if line.find('/media/usb') != -1:
+				myusb = '/media/usb/picon'
+				if not os.path.exists('/media/usb/picon'):
+					os.system('mkdir -p /media/usb/picon')
+			elif line.find('/media/usb1') != -1:
+				myusb1 = '/media/usb1/picon'
+				if not os.path.exists('/media/usb1/picon'):
+					os.system('mkdir -p /media/usb1/picon')
+			elif line.find('/media/hdd') != -1:
+				myhdd = '/media/hdd/picon'
+				if not os.path.exists('/media/hdd/picon'):
+					os.system('mkdir -p /media/hdd/picon')
+			elif line.find('/media/hdd2') != -1:
+				myhdd2 = '/media/hdd2/picon'
+				if not os.path.exists('/media/hdd2/picon'):
+					os.system('mkdir -p /media/hdd2/picon')
+			elif line.find('/media/sdcard') != -1:
+				mysdcard = '/media/sdcard/picon'
+				if not os.path.exists('/media/sdcard/picon'):
+					os.system('mkdir -p /media/sdcard/picon')
+			elif line.find('/media/sd') != -1:
+				mysd = '/media/sd/picon'
+				if not os.path.exists('/media/sd/picon'):
+					os.system('mkdir -p /media/sd/picon')
+			elif line.find('/universe') != -1:
+				myuniverse = '/universe/picon'
+				if not os.path.exists('/universe/picon'):
+					os.system('mkdir -p /universe/picon')
+			elif line.find('/media/ba') != -1:
+				myba = '/media/ba/picon'
+				if not os.path.exists('/media/ba/picon'):
+					os.system('mkdir -p /media/ba/picon')
+			elif line.find('/data') != -1:
+				mydata = '/data/picon'
+				if not os.path.exists('/data/picon'):
+					os.system('mkdir -p /data/picon')
+		f.close()
+	if myusb:
+		mdevices.append(myusb)
+	if myusb1:
+		mdevices.append(myusb1)
+	if myhdd:
+		mdevices.append(myhdd)
+	if myhdd2:
+		mdevices.append(myhdd2)
+	if mysdcard:
+		mdevices.append(mysdcard)
+	if mysd:
+		mdevices.append(mysd)
+	if myuniverse:
+		mdevices.append(myuniverse)
+	if myba:
+		mdevices.append(myba)
+	if mydata:
+		mdevices.append(mydata)
+	mdevices.append('/picon')
+	mdevices.append('/usr/share/enigma2/picon')
+	return mdevices
+
+
+piconpathss = mountipkpth()
+print('MDEVICES AS:\n', piconpathss)
+
+
 def InitUsageConfig():
 	config.usage = ConfigSubsection()
+	config.usage.dns = ConfigSelection(default="dhcp-router", choices=[
+		("dhcp-router", _("DHCP Router")),
+		("staticip", _("Static IP Router")),
+		("google", _("Google DNS")),
+		("NordVPN", _("NordVPN")),
+		("quad9security", _("Quad9 Security")),
+		("quad9nosecurity", _("Quad9 No Security")),
+		("cloudflare", _("Cloudflare")),
+		("opendns", _("OpenDNS")),
+		("opendns-2", _("OpenDNS-2"))
+	])
 	config.usage.subnetwork = ConfigYesNo(default=True)
 	config.usage.subnetwork_cable = ConfigYesNo(default=True)
 	config.usage.subnetwork_terrestrial = ConfigYesNo(default=True)
@@ -55,6 +152,15 @@ def InitUsageConfig():
 
 	config.usage.service_icon_enable = ConfigYesNo(default=False)
 	config.usage.service_icon_enable.addNotifier(redrawServiceList, initial_call=False)
+	# lulu
+	logpathss = [item.replace('picon', '') for item in piconpathss]
+	if '/usr/share/enigma2/' in logpathss:
+		logpathss.remove('/usr/share/enigma2/')
+		logpathss.append('/home/root/logs/')
+		logpathss.append('/tmp/')
+	config.usage.debug_path = ConfigSelection(default='/home/root/logs/', choices=logpathss)
+	config.usage.picon_dir = ConfigSelection(default="/usr/share/enigma2/picon", choices=piconpathss)
+	# lulu
 	config.usage.servicelist_cursor_behavior = ConfigSelection(default="keep", choices=[
 		("standard", _("Standard")),
 		("keep", _("Keep service")),
@@ -150,7 +256,7 @@ def InitUsageConfig():
 	config.usage.leave_movieplayer_onExit = ConfigSelection(default="popup", choices=[
 		("no", _("no")), ("popup", _("With popup")), ("without popup", _("Without popup")), ("movielist", _("Return to movie list"))])
 
-	config.usage.setup_level = ConfigSelection(default="simple", choices=[
+	config.usage.setup_level = ConfigSelection(default="expert", choices=[
 		("simple", _("Normal")),
 		("intermediate", _("Advanced")),
 		("expert", _("Expert"))])
@@ -778,6 +884,57 @@ def InitUsageConfig():
 	config.autolanguage.subtitle_defaultdvb = ConfigYesNo(default=False)
 	config.autolanguage.subtitle_usecache = ConfigYesNo(default=True)
 
+
+	config.misc.softcam_setup = ConfigSubsection()
+	config.misc.softcam_setup.extension_menu = ConfigYesNo(default=True)
+	config.misc.softcam_streamrelay_url = ConfigIP(default=[127, 0, 0, 1], auto_jump=True)
+	config.misc.softcam_streamrelay_port = ConfigInteger(default=17999, limits=(0, 65535))
+	config.misc.softcam_streamrelay_delay = ConfigSelectionNumber(min=0, max=2000, stepwidth=50, default=100, wraparound=True)
+
+	config.softcam = ConfigSubsection()
+	config.softcam.showInExtensions = ConfigYesNo(default=False)
+	config.softcam.hideServerName = ConfigYesNo(default=False)
+
+	config.oscaminfo = ConfigSubsection()
+	config.oscaminfo.showInExtensions = ConfigYesNo(default=False)
+	config.oscaminfo.userdatafromconf = ConfigYesNo(default=True)
+	config.oscaminfo.autoupdate = ConfigYesNo(default=False)
+	config.oscaminfo.username = ConfigText(default="username", fixed_size=False, visible_width=12)
+	config.oscaminfo.password = ConfigPassword(default="password", fixed_size=False)
+	config.oscaminfo.ip = ConfigIP(default=[127, 0, 0, 1], auto_jump=True)
+	config.oscaminfo.port = ConfigInteger(default=16002, limits=(0, 65536))
+	config.oscaminfo.intervall = ConfigSelectionNumber(min=1, max=600, stepwidth=1, default=10, wraparound=True)
+	# config.oscaminfo = ConfigSubsection()
+	# config.oscaminfo.userDataFromConf = ConfigYesNo(default=True)
+	# config.oscaminfo.username = ConfigText(default="username", fixed_size=False, visible_width=12)
+	# config.oscaminfo.password = ConfigPassword(default="password", fixed_size=False)
+	# config.oscaminfo.ip = ConfigIP(default=[127, 0, 0, 1], auto_jump=True)
+	# config.oscaminfo.port = ConfigInteger(default=16002, limits=(0, 65536))
+	# choiceList = [
+		# (0, _("Disabled"))
+	# ] + [(x, ngettext("%d Second", "%d Seconds", x) % x) for x in (2, 5, 10, 20, 30)] + [(x * 60, ngettext("%d Minute", "%d Minutes", x) % x) for x in (1, 2, 3)]
+	# config.oscaminfo.autoUpdate = ConfigSelection(default=10, choices=choiceList)
+	# choiceList = [
+		# (0, _("Disabled"))
+	# ] + [(x, ngettext("%d Second", "%d Seconds", x) % x) for x in (2, 5, 10, 20, 30)] + [(x * 60, ngettext("%d Minute", "%d Minutes", x) % x) for x in (1, 2, 3)]
+	# config.oscaminfo.autoUpdateLog = ConfigSelection(default=0, choices=choiceList)
+	# BoxInfo.setItem("OScamInstalled", False)
+
+	config.cccaminfo = ConfigSubsection()
+	config.cccaminfo.serverNameLength = ConfigSelectionNumber(min=10, max=100, stepwidth=1, default=22, wraparound=True)
+	config.cccaminfo.name = ConfigText(default="Profile", fixed_size=False)
+	config.cccaminfo.ip = ConfigText(default="192.168.2.12", fixed_size=False)
+	config.cccaminfo.username = ConfigText(default="", fixed_size=False)
+	config.cccaminfo.password = ConfigText(default="", fixed_size=False)
+	config.cccaminfo.port = ConfigInteger(default=16001, limits=(1, 65535))
+	config.cccaminfo.profile = ConfigText(default="", fixed_size=False)
+	config.cccaminfo.ecmInfoEnabled = ConfigYesNo(default=True)
+	config.cccaminfo.ecmInfoTime = ConfigSelectionNumber(min=1, max=10, stepwidth=1, default=5, wraparound=True)
+	config.cccaminfo.ecmInfoForceHide = ConfigYesNo(default=True)
+	config.cccaminfo.ecmInfoPositionX = ConfigInteger(default=50)
+	config.cccaminfo.ecmInfoPositionY = ConfigInteger(default=50)
+	config.cccaminfo.blacklist = ConfigText(default="/media/cf/CCcamInfo.blacklisted", fixed_size=False)
+	config.cccaminfo.profiles = ConfigText(default="/media/cf/CCcamInfo.profiles", fixed_size=False)
 	config.streaming = ConfigSubsection()
 	config.streaming.stream_ecm = ConfigYesNo(default=False)
 	config.streaming.descramble = ConfigYesNo(default=True)
@@ -790,18 +947,12 @@ def InitUsageConfig():
 	config.mediaplayer.useAlternateUserAgent = ConfigYesNo(default=False)
 	config.mediaplayer.alternateUserAgent = ConfigText(default="")
 
-	config.misc.softcam_setup = ConfigSubsection()
-	config.misc.softcam_setup.extension_menu = ConfigYesNo(default=True)
-	config.misc.softcam_streamrelay_url = ConfigIP(default=[127, 0, 0, 1], auto_jump=True)
-	config.misc.softcam_streamrelay_port = ConfigInteger(default=17999, limits=(0, 65535))
-	config.misc.softcam_streamrelay_delay = ConfigSelectionNumber(min=0, max=2000, stepwidth=50, default=100, wraparound=True)
-
 	config.ntp = ConfigSubsection()
 
 	def timesyncChanged(configElement):
 		if configElement.value == "ntp" or configElement.value == "auto":
 			if not os.path.isfile('/var/spool/cron/crontabs/root') or not 'ntpdate-sync' in open('/var/spool/cron/crontabs/root').read():
-				Console().ePopen("echo '30 * * * *    /usr/bin/ntpdate-sync silent' >> /var/spool/cron/crontabs/root")
+				Console().ePopen("echo '30 * * * *	  /usr/bin/ntpdate-sync silent' >> /var/spool/cron/crontabs/root")
 			if not os.path.islink('/etc/network/if-up.d/ntpdate-sync'):
 				Console().ePopen("ln -s /usr/bin/ntpdate-sync /etc/network/if-up.d/ntpdate-sync")
 		else:
@@ -841,7 +992,7 @@ def updateChoices(sel, choices):
 	if choices:
 		defval = None
 		val = int(sel.value)
-		if not val in choices:
+		if val not in choices:
 			tmp = choices[:]
 			tmp.reverse()
 			for x in tmp:
@@ -853,7 +1004,7 @@ def updateChoices(sel, choices):
 
 def preferredPath(path):
 	if config.usage.setup_level.index < 2 or path == "<default>" or not path:
-		return None  # config.usage.default_path.value, but delay lookup until usage
+		return None	 # config.usage.default_path.value, but delay lookup until usage
 	elif path == "<current>":
 		return config.movielist.last_videodir.value
 	elif path == "<timer>":
