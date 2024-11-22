@@ -1,4 +1,3 @@
-import sys
 import os
 from Tools.Profile import profile, profile_final
 profile("PYTHON_START")
@@ -26,14 +25,15 @@ Tools.Geolocation.InitGeolocation()
 profile("SimpleSummary")
 from Screens import InfoBar
 from Screens.SimpleSummary import SimpleSummary
-
 from sys import stdout
 
 profile("Bouquets")
 from Components.config import config, configfile, ConfigText, ConfigYesNo, ConfigInteger, ConfigSelection, NoSave
+
 config.misc.load_unlinked_userbouquets = ConfigSelection(default="1", choices=[("0", _("Off")), ("1", _("Top")), ("2", _("Bottom"))])
 if config.misc.load_unlinked_userbouquets.value.lower() in ("true", "false"):
 	config.misc.load_unlinked_userbouquets.value = "1" if config.misc.load_unlinked_userbouquets.value.lower() == "true" else "0"
+
 
 def setLoadUnlinkedUserbouquets(configElement):
 	enigma.eDVBDB.getInstance().setLoadUnlinkedUserbouquets(int(configElement.value))
@@ -64,10 +64,24 @@ config.misc.standbyCounter = NoSave(ConfigInteger(default=0)) # number of standb
 config.misc.DeepStandby = NoSave(ConfigYesNo(default=False)) # detect deepstandby
 config.misc.RestartUI = ConfigYesNo(default=False) # detect user interface restart
 config.misc.prev_wakeup_time = ConfigInteger(default=0)
-#config.misc.prev_wakeup_time_type is only valid when wakeup_time is not 0
+# config.misc.prev_wakeup_time_type is only valid when wakeup_time is not 0
 config.misc.prev_wakeup_time_type = ConfigInteger(default=0)
 # 0 = RecordTimer, 1 = ZapTimer, 2 = Plugins, 3 = WakeupTimer
 config.misc.epgcache_filename = ConfigText(default="/media/hdd/epg.dat", fixed_size=False)
+
+# New Plugin Style	- <!-- add @lululla -->
+config.misc.pluginstyle = ConfigSelection(default="New Style 2", choices=[
+	("normallstyle", _("New Style 5")),
+	("newstyle1", _("New Style 1")),
+	("newstyle2", _("New Style 2")),
+	("newstyle3", _("New Style 3")),
+	("newstyle4", _("New Style 4")),
+	("newstyle5", _("New Style 5")),
+	("newstyle6", _("New Style 6")),
+	("newstyle7", _("New Style 7")),
+	("newstyle8", _("New Style 8")),
+	("newstyle9", _("New Style 9")),
+	])
 
 
 def setEPGCachePath(configElement):
@@ -75,17 +89,17 @@ def setEPGCachePath(configElement):
 		configElement.value = os.path.join(configElement.value, "epg.dat")
 	enigma.eEPGCache.getInstance().setCacheFile(configElement.value)
 
-#demo code for use of standby enter leave callbacks
-#def leaveStandby():
+# demo code for use of standby enter leave callbacks
+# def leaveStandby():
 #	print "!!!!!!!!!!!!!!!!!leave standby"
 
-#def standbyCountChanged(configElement):
+# def standbyCountChanged(configElement):
 #	print "!!!!!!!!!!!!!!!!!enter standby num", configElement.value
 #	from Screens.Standby import inStandby
 #	inStandby.onClose.append(leaveStandby)
 
-#config.misc.standbyCounter.addNotifier(standbyCountChanged, initial_call = False)
-####################################################
+# config.misc.standbyCounter.addNotifier(standbyCountChanged, initial_call = False)
+# ###################################################
 
 
 profile("Twisted")
@@ -151,24 +165,24 @@ Screen.globalScreen = Globals()
 # Session.open:
 # * push current active dialog ('current_dialog') onto stack
 # * call execEnd for this dialog
-#   * clear in_exec flag
-#   * hide screen
+#	* clear in_exec flag
+#	* hide screen
 # * instantiate new dialog into 'current_dialog'
-#   * create screens, components
-#   * read, apply skin
-#   * create GUI for screen
+#	* create screens, components
+#	* read, apply skin
+#	* create GUI for screen
 # * call execBegin for new dialog
-#   * set in_exec
-#   * show gui screen
-#   * call components' / screen's onExecBegin
+#	* set in_exec
+#	* show gui screen
+#	* call components' / screen's onExecBegin
 # ... screen is active, until it calls 'close'...
 # Session.close:
 # * assert in_exec
 # * save return value
 # * start deferred close handler ('onClose')
 # * execEnd
-#   * clear in_exec
-#   * hide screen
+#	* clear in_exec
+#	* hide screen
 # .. a moment later:
 # Session.doClose:
 # * destroy screen
@@ -207,7 +221,7 @@ class Session:
 
 		if self.current_dialog.isTmp:
 			self.current_dialog.doClose()
-#			dump(self.current_dialog)
+            # dump(self.current_dialog)
 			del self.current_dialog
 		else:
 			del self.current_dialog.callback
@@ -289,7 +303,7 @@ class Session:
 		self.pushCurrent()
 		self.current_dialog = dialog
 		self.current_dialog.isTmp = False
-		self.current_dialog.callback = None # would cause re-entrancy problems.
+		self.current_dialog.callback = None  # would cause re-entrancy problems.
 		self.execBegin()
 
 	def openWithCallback(self, callback, screen, *arguments, **kwargs):
@@ -355,7 +369,7 @@ class PowerKey:
 		globalActionMap.actions["power_down"] = lambda *args: None
 		globalActionMap.actions["power_up"] = self.powerup
 		globalActionMap.actions["power_long"] = self.powerlong
-		globalActionMap.actions["deepstandby"] = self.shutdown # frontpanel long power button press
+		globalActionMap.actions["deepstandby"] = self.shutdown  # frontpanel long power button press
 		globalActionMap.actions["discrete_off"] = self.standby
 
 	def shutdown(self):
@@ -422,7 +436,7 @@ class AutoScartControl:
 		self.VCRSbChanged(self.current_vcr_sb)
 
 	def VCRSbChanged(self, value):
-		#print "vcr sb changed to", value
+		# print "vcr sb changed to", value
 		self.current_vcr_sb = value
 		if config.av.vcrswitch.value or value > 2:
 			if value:
@@ -502,7 +516,7 @@ def runScreenTest():
 	from time import time, strftime, localtime
 	from Tools.StbHardware import setFPWakeuptime, setRTCtime
 	from Screens.SleepTimerEdit import isNextWakeupTime
-	#get currentTime
+	# get currentTime
 	nowTime = time()
 	wakeupList = [
 		x for x in ((session.nav.RecordTimer.getNextRecordingTime(), 0),
@@ -513,9 +527,9 @@ def runScreenTest():
 	]
 	wakeupList.sort()
 	if wakeupList:
-		from time import strftime
+		# from time import strftime
 		startTime = wakeupList[0]
-		if (startTime[0] - nowTime) < 270: # no time to switch box back on
+		if (startTime[0] - nowTime) < 270:  # no time to switch box back on
 			wptime = nowTime + 30  # so switch back on in 30 seconds
 		else:
 			wptime = startTime[0] - 240
@@ -593,10 +607,10 @@ import Components.RcModel
 profile("Init:PowerOffTimer")
 from Components.PowerOffTimer import powerOffTimer
 
-#from enigma import dump_malloc_stats
-#t = eTimer()
-#t.callback.append(dump_malloc_stats)
-#t.start(1000)
+# from enigma import dump_malloc_stats
+# t = eTimer()
+# t.callback.append(dump_malloc_stats)
+# t.start(1000)
 
 # first, setup a screen
 try:
