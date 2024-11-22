@@ -208,7 +208,7 @@ self.session.open(CrashLogScreen)
 		<item key="sleep" text="Sleep timer">
 			<screen module="SleepTimerEdit" screen="SleepTimerEdit"/>
 		</item>
-		<item key="multiboot" text="Multiboot " requires="canMultiBoot">
+		<item key="multiboot" text="Multiboot" requires="canMultiBoot">
 			<screen module="FlashImage" screen="MultibootSelection">1</screen>
 		</item>
 		<item key="restart_enigma_debug" text="Restart enigma in debug mode" requires="!InDebugMode">
