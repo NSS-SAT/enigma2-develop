@@ -140,7 +140,7 @@ def resolveFilename(scope, base="", path_prefix=None):
 			callingCode = os.path.normpath(getframe(1).f_code.co_filename)
 			plugins = os.path.normpath(scopePlugins)
 			path = None
-			if comparePath(plugins, callingCode):
+			if comparePaths(plugins, callingCode):
 				pluginCode = callingCode[len(plugins) + 1:].split(os.sep)
 				if len(pluginCode) > 2:
 					relative = "%s%s%s" % (pluginCode[0], os.sep, pluginCode[1])
@@ -345,7 +345,7 @@ def fileHas(f, content, mode="r"):
 def fileDate(f):
 	if fileExists(f):
 		return datetime.fromtimestamp(os.stat(f).st_mtime).strftime("%Y-%m-%d")
-	return("1970-01-01")
+	return ("1970-01-01")
 
 
 def fileReadXML(filename, default=None, *args, **kwargs):
@@ -563,6 +563,7 @@ def mediafilesInUse(session):
 
 def shellquote(s):
 	return "'%s'" % s.replace("'", "'\\''")
+
 
 def isPluginInstalled(pluginname, pluginfile="plugin", pluginType=None):
 	path = resolveFilename(SCOPE_PLUGINS)
