@@ -15,9 +15,9 @@ from xml.etree.ElementTree import Element, fromstring, parse
 from os.path import exists as pathExists, isdir as pathIsdir, isfile as pathIsfile, join as pathJoin
 
 from os import listdir
+DEFAULT_MODULE_NAME = __name__.split(".")[-1]
 
-
-SCOPE_HOME = 0  # DEBUG: Not currently used in Enigma2.
+SCOPE_HOME = 0	# DEBUG: Not currently used in Enigma2.
 SCOPE_LANGUAGE = 1
 SCOPE_KEYMAPS = 2
 SCOPE_METADIR = 3
@@ -53,7 +53,7 @@ PATH_CREATE = 0
 PATH_DONTCREATE = 1
 
 defaultPaths = {
-	SCOPE_HOME: ("", PATH_DONTCREATE),  # User home directory
+	SCOPE_HOME: ("", PATH_DONTCREATE),	# User home directory
 	SCOPE_LANGUAGE: (eEnv.resolve("${datadir}/enigma2/po/"), PATH_DONTCREATE),
 	SCOPE_KEYMAPS: (eEnv.resolve("${datadir}/keymaps/"), PATH_CREATE),
 	SCOPE_METADIR: (eEnv.resolve("${datadir}/meta/"), PATH_CREATE),
@@ -108,7 +108,7 @@ def resolveFilename(scope, base="", path_prefix=None):
 		try:
 			os.makedirs(path)
 		except (IOError, OSError) as err:
-			print("[Directories] Error %d: Couldn't create directory '%s'!  (%s)" % (err.errno, path, err.strerror))
+			print("[Directories] Error %d: Couldn't create directory '%s'!	(%s)" % (err.errno, path, err.strerror))
 			return None
 	suffix = None  # Remove any suffix data and restore it at the end.
 	data = base.split(":", 1)
@@ -130,9 +130,9 @@ def resolveFilename(scope, base="", path_prefix=None):
 					return file
 		return base
 
-	if base == "":  # If base is "" then set path to the scope.  Otherwise use the scope to resolve the base filename.
+	if base == "":	# If base is "" then set path to the scope.	 Otherwise use the scope to resolve the base filename.
 		path, flags = defaultPaths[scope]
-		if scope == SCOPE_GUISKIN:  # If the scope is SCOPE_GUISKIN append the current skin to the scope path.
+		if scope == SCOPE_GUISKIN:	# If the scope is SCOPE_GUISKIN append the current skin to the scope path.
 			from Components.config import config  # This import must be here as this module finds the config file as part of the config initialisation.
 			skin = os.path.dirname(config.skin.primary_skin.value)
 			path = os.path.join(path, skin)
@@ -235,7 +235,7 @@ def resolveFilename(scope, base="", path_prefix=None):
 		path = "%s%s" % (path, os.sep)
 	if scope == SCOPE_PLUGIN_RELATIVE:
 		path = path[len(plugins) + 1:]
-	if suffix is not None:  # If a suffix was supplied restore it.
+	if suffix is not None:	# If a suffix was supplied restore it.
 		path = "%s:%s" % (path, suffix)
 	return path
 
@@ -294,7 +294,7 @@ def defaultRecordingLocation(candidate=None):
 		if os.path.isdir(movie):
 			path = movie
 		if not path.endswith("/"):
-			path += "/"  # Bad habits die hard, old code relies on this.
+			path += "/"	 # Bad habits die hard, old code relies on this.
 	return path
 
 
@@ -494,8 +494,8 @@ def moveFiles(fileList):
 	except (IOError, OSError) as err:
 		if err.errno == errno.EXDEV:  # Invalid cross-device link
 			print("[Directories] Warning: Cannot rename across devices, trying slower move.")
-			# from Tools.CopyFiles import moveFiles as extMoveFiles  # OpenViX, OpenATV, Beyonwiz
-			from Screens.CopyFiles import moveFiles as extMoveFiles  # OpenPLi
+			# from Tools.CopyFiles import moveFiles as extMoveFiles	 # OpenViX, OpenATV, Beyonwiz
+			from Screens.CopyFiles import moveFiles as extMoveFiles	 # OpenPLi
 			extMoveFiles(fileList, item[0])
 			print("[Directories] Moving files in background.")
 		else:
@@ -576,8 +576,96 @@ def isPluginInstalled(pluginname, pluginfile="plugin", pluginType=None):
 					return True
 	return False
 
+def fileWriteLine(filename, line, source=DEFAULT_MODULE_NAME, debug=False):
+	try:
+		with open(filename, "w") as fd:
+			fd.write(str(line))
+		msg = "Wrote"
+		result = 1
+	except OSError as err:
+		print("[%s] Error %d: Unable to write a line to file '%s'!	(%s)" % (source, err.errno, filename, err.strerror))
+		msg = "Failed to write"
+		result = 0
+	if debug or forceDebug:
+		print("[%s] Line %d: %s '%s' to file '%s'." % (source, getframe(1).f_lineno, msg, line, filename))
+	return result
 
-def sanitizeFilename(filename, maxlen=255):  # 255 is max length in bytes in ext4 (and most other file systems)
+
+def fileUpdateLine(filename, conditionValue, replacementValue, create=False, source=DEFAULT_MODULE_NAME, debug=False):
+	line = fileReadLine(filename, default="", source=source, debug=debug)
+	create = False if conditionValue and not line.startswith(conditionValue) else create
+	return fileWriteLine(filename, replacementValue, source=source, debug=debug) if create or (conditionValue and line.startswith(conditionValue)) else 0
+
+
+def fileReadLines(filename, default=None, source=DEFAULT_MODULE_NAME, debug=False):
+	lines = None
+	try:
+		with open(filename) as fd:
+			lines = fd.read().splitlines()
+		msg = "Read"
+	except OSError as err:
+		if err.errno != ENOENT:	 # ENOENT - No such file or directory.
+			print("[%s] Error %d: Unable to read lines from file '%s'!	(%s)" % (source, err.errno, filename, err.strerror))
+		lines = default
+		msg = "Default"
+	if debug or forceDebug:
+		length = len(lines) if lines else 0
+		print("[%s] Line %d: %s %d lines from file '%s'." % (source, getframe(1).f_lineno, msg, length, filename))
+	return lines
+
+
+def fileWriteLines(filename, lines, source=DEFAULT_MODULE_NAME, debug=False):
+	try:
+		with open(filename, "w") as fd:
+			if isinstance(lines, list):
+				lines.append("")
+				lines = "\n".join(lines)
+			fd.write(lines)
+		msg = "Wrote"
+		result = 1
+	except OSError as err:
+		print("[%s] Error %d: Unable to write %d lines to file '%s'!  (%s)" % (source, err.errno, len(lines), filename, err.strerror))
+		msg = "Failed to write"
+		result = 0
+	if debug or forceDebug:
+		print("[%s] Line %d: %s %d lines to file '%s'." % (source, getframe(1).f_lineno, msg, len(lines), filename))
+	return result
+
+
+def fileAccess(file, mode="r"):
+	accMode = F_OK
+	if "r" in mode:
+		accMode |= R_OK
+	if "w" in mode:
+		accMode |= W_OK
+	result = False
+	try:
+		result = access(file, accMode)
+	except OSError as err:
+		print("[Directories] Error %d: Couldn't determine file '%s' access mode!  (%s)" % (err.errno, file, err.strerror))
+	return result
+
+
+def fileContains(file, content, mode="r"):
+	result = False
+	if fileExists(file, mode):
+		with open(file, mode) as fd:
+			text = fd.read()
+		if content in text:
+			result = True
+	return result
+
+
+def renameDir(oldPath, newPath):
+	try:
+		rename(oldPath, newPath)
+		return 1
+	except OSError as err:
+		print("[Directories] Error %d: Couldn't rename directory '%s' to '%s'!	(%s)" % (err.errno, oldPath, newPath, err.strerror))
+	return 0
+
+
+def sanitizeFilename(filename, maxlen=255):	 # 255 is max length in bytes in ext4 (and most other file systems)
 	"""Return a fairly safe version of the filename.
 
 	We don't limit ourselves to ascii, because we want to keep municipality
@@ -606,7 +694,7 @@ def sanitizeFilename(filename, maxlen=255):  # 255 is max length in bytes in ext
 	# Prioritise maintaining the complete extension if possible.
 	# Any truncation of "root" or "ext" will be done at the end of the string
 	root, ext = os.path.splitext(filename.encode(encoding='utf-8', errors='ignore'))
-	if len(ext) > maxlen - (1 if root else 0):  # leave at least one char for root if root
+	if len(ext) > maxlen - (1 if root else 0):	# leave at least one char for root if root
 		ext = ext[:maxlen - (1 if root else 0)]
 	# convert back to unicode, ignoring any incomplete utf8 multibyte chars
 	filename = root[:maxlen - len(ext)].decode(encoding='utf-8', errors='ignore') + ext.decode(encoding='utf-8', errors='ignore')
