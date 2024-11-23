@@ -316,8 +316,8 @@ def fileReadLine(filename, default=None, source=DEFAULT_MODULE_NAME, debug=False
 			print("[%s] Error %d: Unable to read a line from file '%s'!	 (%s)" % (source, err.errno, filename, err.strerror))
 		line = default
 		msg = "Default"
-	if debug or forceDebug:
-		print("[%s] Line %d: %s '%s' from file '%s'." % (source, getframe(1).f_lineno, msg, line, filename))
+	# if debug or forceDebug:
+		# print("[%s] Line %d: %s '%s' from file '%s'." % (source, getframe(1).f_lineno, msg, line, filename))
 	return line
 
 
@@ -593,8 +593,8 @@ def fileWriteLine(filename, line, source=DEFAULT_MODULE_NAME, debug=False):
 		print("[%s] Error %d: Unable to write a line to file '%s'!	(%s)" % (source, err.errno, filename, err.strerror))
 		msg = "Failed to write"
 		result = 0
-	if debug or forceDebug:
-		print("[%s] Line %d: %s '%s' to file '%s'." % (source, getframe(1).f_lineno, msg, line, filename))
+	# if debug or forceDebug:
+		# print("[%s] Line %d: %s '%s' to file '%s'." % (source, getframe(1).f_lineno, msg, line, filename))
 	return result
 
 
@@ -615,9 +615,9 @@ def fileReadLines(filename, default=None, source=DEFAULT_MODULE_NAME, debug=Fals
 			print("[%s] Error %d: Unable to read lines from file '%s'!	(%s)" % (source, err.errno, filename, err.strerror))
 		lines = default
 		msg = "Default"
-	if debug or forceDebug:
-		length = len(lines) if lines else 0
-		print("[%s] Line %d: %s %d lines from file '%s'." % (source, getframe(1).f_lineno, msg, length, filename))
+	# if debug or forceDebug:
+		# length = len(lines) if lines else 0
+		# print("[%s] Line %d: %s %d lines from file '%s'." % (source, getframe(1).f_lineno, msg, length, filename))
 	return lines
 
 
@@ -634,8 +634,8 @@ def fileWriteLines(filename, lines, source=DEFAULT_MODULE_NAME, debug=False):
 		print("[%s] Error %d: Unable to write %d lines to file '%s'!  (%s)" % (source, err.errno, len(lines), filename, err.strerror))
 		msg = "Failed to write"
 		result = 0
-	if debug or forceDebug:
-		print("[%s] Line %d: %s %d lines to file '%s'." % (source, getframe(1).f_lineno, msg, len(lines), filename))
+	# if debug or forceDebug:
+		# print("[%s] Line %d: %s %d lines to file '%s'." % (source, getframe(1).f_lineno, msg, len(lines), filename))
 	return result
 
 
