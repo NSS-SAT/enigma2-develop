@@ -345,7 +345,7 @@ def InitUsageConfig():
 		choicelist.append((str(i), ngettext("%d minute", "%d minutes", m) % m))
 	config.usage.timeshift_start_delay = ConfigSelection(default="0", choices=choicelist)
 
-	config.usage.alternatives_priority = ConfigSelection(default="0", choices=[
+	config.usage.alternatives_priority = ConfigSelection(default="5", choices=[
 		("0", "DVB-S/-C/-T"),
 		("1", "DVB-S/-T/-C"),
 		("2", "DVB-C/-S/-T"),
@@ -923,7 +923,7 @@ def InitUsageConfig():
 	config.cccaminfo = ConfigSubsection()
 	config.cccaminfo.serverNameLength = ConfigSelectionNumber(min=10, max=100, stepwidth=1, default=22, wraparound=True)
 	config.cccaminfo.name = ConfigText(default="Profile", fixed_size=False)
-	config.cccaminfo.ip = ConfigText(default="192.168.2.12", fixed_size=False)
+	config.cccaminfo.ip = ConfigText(default="192.168.1.78", fixed_size=False)
 	config.cccaminfo.username = ConfigText(default="", fixed_size=False)
 	config.cccaminfo.password = ConfigText(default="", fixed_size=False)
 	config.cccaminfo.port = ConfigInteger(default=16001, limits=(1, 65535))
@@ -933,8 +933,8 @@ def InitUsageConfig():
 	config.cccaminfo.ecmInfoForceHide = ConfigYesNo(default=True)
 	config.cccaminfo.ecmInfoPositionX = ConfigInteger(default=50)
 	config.cccaminfo.ecmInfoPositionY = ConfigInteger(default=50)
-	config.cccaminfo.blacklist = ConfigText(default="/media/cf/CCcamInfo.blacklisted", fixed_size=False)
-	config.cccaminfo.profiles = ConfigText(default="/media/cf/CCcamInfo.profiles", fixed_size=False)
+	config.cccaminfo.blacklist = ConfigText(default="/etc/enigma2/CCcamInfo.blacklisted", fixed_size=False)
+	config.cccaminfo.profiles = ConfigText(default="/etc/enigma2/CCcamInfo.profiles", fixed_size=False)
 	config.streaming = ConfigSubsection()
 	config.streaming.stream_ecm = ConfigYesNo(default=False)
 	config.streaming.descramble = ConfigYesNo(default=True)
