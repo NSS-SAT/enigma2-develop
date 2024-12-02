@@ -27,7 +27,7 @@
 		<button name="RIGHT" pos="89,207" />
 		<button name="AUDIO" pos="24,246" />
 		<button name="PVR" pos="94,246" />
-		<button name="RED" pos="18,305" />
+		<button name="RED" pos="18,144" />
 		<button name="GREEN" pos="44,144" />
 		<button name="YELLOW" pos="70,144" />
 		<button name="BLUE" pos="94,144" />
