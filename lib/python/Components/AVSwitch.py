@@ -89,7 +89,8 @@ def InitAVSwitch():
 			"16_10_letterbox": _("16:10 Letterbox"),
 			"16_10_panscan": _("16:10 PanScan"),
 			"16_9_letterbox": _("16:9 Letterbox")},
-			default="16_9")
+			# "auto": _("Auto"),
+			default="16_9_always")
 	config.av.aspect = ConfigSelection(choices={
 			"4_3": "4:3",
 			"16_9": "16:9",
