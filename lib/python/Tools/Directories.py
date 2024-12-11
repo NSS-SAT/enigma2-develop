@@ -16,7 +16,7 @@ DEFAULT_MODULE_NAME = __name__.split(".")[-1]
 forceDebug = eGetEnigmaDebugLvl() > 4
 pathExists = exists
 
-SCOPE_HOME = 0	# DEBUG: Not currently used in Enigma2.
+SCOPE_HOME = 0  # DEBUG: Not currently used in Enigma2.
 SCOPE_LANGUAGE = 1
 SCOPE_KEYMAPS = 2
 SCOPE_METADIR = 3
@@ -52,7 +52,7 @@ PATH_CREATE = 0
 PATH_DONTCREATE = 1
 
 defaultPaths = {
-	SCOPE_HOME: ("", PATH_DONTCREATE),	# User home directory
+	SCOPE_HOME: ("", PATH_DONTCREATE),  # User home directory
 	SCOPE_LANGUAGE: (eEnv.resolve("${datadir}/enigma2/po/"), PATH_DONTCREATE),
 	SCOPE_KEYMAPS: (eEnv.resolve("${datadir}/keymaps/"), PATH_CREATE),
 	SCOPE_METADIR: (eEnv.resolve("${datadir}/meta/"), PATH_CREATE),
@@ -91,6 +91,18 @@ lcdskinResolveList = []
 fontsResolveList = []
 
 
+def comparePaths(leftPath, rightPath):
+	print("[Directories] comparePaths DEBUG: left='%s', right='%s'." % (leftPath, rightPath))
+	if leftPath.endswith(sep):
+		leftPath = leftPath[:-1]
+	left = leftPath.split(sep)
+	right = rightPath.split(sep)
+	for index, segment in enumerate(left):
+		if left[index] != right[index]:
+			return False
+	return True
+
+
 def InitDefaultPaths():
 	resolveFilename(SCOPE_CONFIG)
 
@@ -111,7 +123,7 @@ def resolveFilename(scope, base="", path_prefix=None):
 		try:
 			os.makedirs(path)
 		except (IOError, OSError) as err:
-			print("[Directories] Error %d: Couldn't create directory '%s'!	(%s)" % (err.errno, path, err.strerror))
+			print("[Directories] Error %d: Couldn't create directory '%s'!  (%s)" % (err.errno, path, err.strerror))
 			return None
 	suffix = None  # Remove any suffix data and restore it at the end.
 	data = base.split(":", 1)
@@ -133,9 +145,9 @@ def resolveFilename(scope, base="", path_prefix=None):
 					return file
 		return base
 
-	if base == "":	# If base is "" then set path to the scope.	 Otherwise use the scope to resolve the base filename.
+	if base == "":  # If base is "" then set path to the scope.  Otherwise use the scope to resolve the base filename.
 		path, flags = defaultPaths[scope]
-		if scope == SCOPE_GUISKIN:	# If the scope is SCOPE_GUISKIN append the current skin to the scope path.
+		if scope == SCOPE_GUISKIN:  # If the scope is SCOPE_GUISKIN append the current skin to the scope path.
 			from Components.config import config  # This import must be here as this module finds the config file as part of the config initialisation.
 			skin = os.path.dirname(config.skin.primary_skin.value)
 			path = os.path.join(path, skin)
@@ -143,7 +155,7 @@ def resolveFilename(scope, base="", path_prefix=None):
 			callingCode = os.path.normpath(getframe(1).f_code.co_filename)
 			plugins = os.path.normpath(scopePlugins)
 			path = None
-			if comparePath(plugins, callingCode):
+			if comparePaths(plugins, callingCode):
 				pluginCode = callingCode[len(plugins) + 1:].split(os.sep)
 				if len(pluginCode) > 2:
 					relative = "%s%s%s" % (pluginCode[0], os.sep, pluginCode[1])
@@ -240,21 +252,9 @@ def resolveFilename(scope, base="", path_prefix=None):
 		path = "%s%s" % (path, os.sep)
 	if scope == SCOPE_PLUGIN_RELATIVE:
 		path = path[len(plugins) + 1:]
-	if suffix is not None:	# If a suffix was supplied restore it.
+	if suffix is not None:  # If a suffix was supplied restore it.
 		path = "%s:%s" % (path, suffix)
 	return path
-
-
-def comparePaths(leftPath, rightPath):
-	print("[Directories] comparePaths DEBUG: left='%s', right='%s'." % (leftPath, rightPath))
-	if leftPath.endswith(sep):
-		leftPath = leftPath[:-1]
-	left = leftPath.split(sep)
-	right = rightPath.split(sep)
-	for index, segment in enumerate(left):
-		if left[index] != right[index]:
-			return False
-	return True
 
 
 def bestRecordingLocation(candidates):
@@ -262,9 +262,9 @@ def bestRecordingLocation(candidates):
 	biggest = 0
 	for candidate in candidates:
 		try:
-			status = statvfs(candidate[1])	# Must have some free space (i.e. not read-only).
+			status = statvfs(candidate[1])  # Must have some free space (i.e. not read-only).
 			if status.f_bavail:
-				size = (status.f_blocks + status.f_bavail) * status.f_bsize	 # Free space counts double.
+				size = (status.f_blocks + status.f_bavail) * status.f_bsize  # Free space counts double.
 				if size > biggest:
 					biggest = size
 					path = candidate[1]
@@ -277,8 +277,9 @@ def defaultRecordingLocation(candidate=None):
 	if candidate and pathExists(candidate):
 		return candidate
 	try:
-		path = readlink("/hdd")	 # First, try whatever /hdd points to, or /media/hdd.
+		path = readlink("/hdd")  # First, try whatever /hdd points to, or /media/hdd.
 	except OSError as err:
+		print(err)
 		path = "/media/hdd"
 	if not pathExists(path):  # Find the largest local disk.
 		from Components import Harddisk
@@ -287,7 +288,7 @@ def defaultRecordingLocation(candidate=None):
 		if not path:  # If we haven't found a viable candidate yet, try remote mounts.
 			path = bestRecordingLocation([mount for mount in mounts if not mount[0].startswith("/dev/")])
 	if path:
-		movie = pathjoin(path, "movie", "")	 # If there's a movie subdir, we'd probably want to use that (directories need to end in sep).
+		movie = pathjoin(path, "movie", "")  # If there's a movie subdir, we'd probably want to use that (directories need to end in sep).
 		if isdir(movie):
 			path = movie
 	return path
@@ -301,7 +302,7 @@ def createDir(path, makeParents=False):
 			mkdir(path)
 		return 1
 	except OSError as err:
-		print("[Directories] Error %d: Couldn't create directory '%s'!	(%s)" % (err.errno, path, err.strerror))
+		print("[Directories] Error %d: Couldn't create directory '%s'!  (%s)" % (err.errno, path, err.strerror))
 	return 0
 
 
@@ -312,8 +313,8 @@ def fileReadLine(filename, default=None, source=DEFAULT_MODULE_NAME, debug=False
 			line = fd.read().strip().replace("\0", "")
 		msg = "Read"
 	except OSError as err:
-		if err.errno != ENOENT:	 # ENOENT - No such file or directory.
-			print("[%s] Error %d: Unable to read a line from file '%s'!	 (%s)" % (source, err.errno, filename, err.strerror))
+		if err.errno != ENOENT:  # ENOENT - No such file or directory.
+			print("[%s] Error %d: Unable to read a line from file '%s'!  (%s)" % (source, err.errno, filename, err.strerror))
 		line = default
 		msg = "Default"
 	# if debug or forceDebug:
@@ -326,7 +327,7 @@ def removeDir(path):
 		rmdir(path)
 		return 1
 	except OSError as err:
-		print("[Directories] Error %d: Couldn't remove directory '%s'!	(%s)" % (err.errno, path, err.strerror))
+		print("[Directories] Error %d: Couldn't remove directory '%s'!  (%s)" % (err.errno, path, err.strerror))
 	return 0
 
 
@@ -337,13 +338,17 @@ def fileExists(file, mode="r"):
 def fileCheck(file, mode="r"):
 	return fileAccess(file, mode) and file
 
+
 def fileDate(f):
 	if fileExists(f):
+		import datetime
 		return datetime.fromtimestamp(os.stat(f).st_mtime).strftime("%Y-%m-%d")
 	return ("1970-01-01")
 
+
 def fileHas(file, content, mode="r"):
 	return fileContains(file, content, mode)
+
 
 def fileReadXML(filename, default=None, *args, **kwargs):
 	dom = None
@@ -419,30 +424,30 @@ def copyFile(src, dst):
 		return -1
 	return 0
 	# if isdir(dst):
-	#	dst = pathjoin(dst, basename(src))
+	#   dst = pathjoin(dst, basename(src))
 	# try:
-	#	with open(src, "rb") as fd1:
-	#		with open(dst, "w+b") as fd2:
-	#			while True:
-	#				buf = fd1.read(16 * 1024)
-	#				if not buf:
-	#					break
-	#				fd2.write(buf)
-	#	try:
-	#		status = stat(src)
-	#		try:
-	#			chmod(dst, S_IMODE(status.st_mode))
-	#		except OSError as err:
-	#			print("[Directories] Error %d: Setting modes from '%s' to '%s'!	 (%s)" % (err.errno, src, dst, err.strerror))
-	#		try:
-	#			utime(dst, (status.st_atime, status.st_mtime))
-	#		except OSError as err:
-	#			print("[Directories] Error %d: Setting times from '%s' to '%s'!	 (%s)" % (err.errno, src, dst, err.strerror))
-	#	except OSError as err:
-	#		print("[Directories] Error %d: Obtaining status from '%s'!	(%s)" % (err.errno, src, err.strerror))
+	#   with open(src, "rb") as fd1:
+	#       with open(dst, "w+b") as fd2:
+	#           while True:
+	#               buf = fd1.read(16 * 1024)
+	#               if not buf:
+	#                   break
+	#               fd2.write(buf)
+	#   try:
+	#       status = stat(src)
+	#       try:
+	#           chmod(dst, S_IMODE(status.st_mode))
+	#       except OSError as err:
+	#           print("[Directories] Error %d: Setting modes from '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
+	#       try:
+	#           utime(dst, (status.st_atime, status.st_mtime))
+	#       except OSError as err:
+	#           print("[Directories] Error %d: Setting times from '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
+	#   except OSError as err:
+	#       print("[Directories] Error %d: Obtaining status from '%s'!  (%s)" % (err.errno, src, err.strerror))
 	# except OSError as err:
-	#	print("[Directories] Error %d: Copying file '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
-	#	return -1
+	#   print("[Directories] Error %d: Copying file '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
+	#   return -1
 	# return 0
 
 
@@ -480,11 +485,11 @@ def copyTree(src, dst, symlinks=False):
 		try:
 			chmod(dst, S_IMODE(status.st_mode))
 		except OSError as err:
-			print("[Directories] Error %d: Setting modes from '%s' to '%s'!	 (%s)" % (err.errno, src, dst, err.strerror))
+			print("[Directories] Error %d: Setting modes from '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
 		try:
 			utime(dst, (status.st_atime, status.st_mtime))
 		except OSError as err:
-			print("[Directories] Error %d: Setting times from '%s' to '%s'!	 (%s)" % (err.errno, src, dst, err.strerror))
+			print("[Directories] Error %d: Setting times from '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
 	except OSError as err:
 		print("[Directories] Error %d: Obtaining stats from '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
 
@@ -501,7 +506,7 @@ def moveFiles(fileList):
 			rename(item[0], item[1])
 			movedList.append(item)
 	except OSError as err:
-		if err.errno == EXDEV:	# EXDEV - Invalid cross-device link.
+		if err.errno == EXDEV:  # EXDEV - Invalid cross-device link.
 			print("[Directories] Warning: Cannot rename across devices, trying slower move.")
 			from Tools.CopyFiles import moveFiles as extMoveFiles  # OpenViX, OpenATV, Beyonwiz
 			# from Screens.CopyFiles import moveFiles as extMoveFiles  # OpenPLi / OV
@@ -532,7 +537,7 @@ def getSize(path, pattern=".*"):
 	return pathSize
 
 
-def lsof():	 # List of open files.
+def lsof():  # List of open files.
 	lsof = []
 	for pid in listdir("/proc"):
 		if pid.isdigit():
@@ -542,8 +547,10 @@ def lsof():	 # List of open files.
 				for file in [pathjoin(dir, file) for file in listdir(dir)]:
 					lsof.append((pid, prog, readlink(file)))
 			except OSError as err:
+				print(err)
 				pass
 	return lsof
+
 
 def getExtension(file):
 	filename, extension = splitext(file)
@@ -590,7 +597,7 @@ def fileWriteLine(filename, line, source=DEFAULT_MODULE_NAME, debug=False):
 		msg = "Wrote"
 		result = 1
 	except OSError as err:
-		print("[%s] Error %d: Unable to write a line to file '%s'!	(%s)" % (source, err.errno, filename, err.strerror))
+		print("[%s] Error %d: Unable to write a line to file '%s'!  (%s)" % (source, err.errno, filename, err.strerror))
 		msg = "Failed to write"
 		result = 0
 	# if debug or forceDebug:
@@ -611,8 +618,8 @@ def fileReadLines(filename, default=None, source=DEFAULT_MODULE_NAME, debug=Fals
 			lines = fd.read().splitlines()
 		msg = "Read"
 	except OSError as err:
-		if err.errno != ENOENT:	 # ENOENT - No such file or directory.
-			print("[%s] Error %d: Unable to read lines from file '%s'!	(%s)" % (source, err.errno, filename, err.strerror))
+		if err.errno != ENOENT:  # ENOENT - No such file or directory.
+			print("[%s] Error %d: Unable to read lines from file '%s'!  (%s)" % (source, err.errno, filename, err.strerror))
 		lines = default
 		msg = "Default"
 	# if debug or forceDebug:
@@ -668,22 +675,22 @@ def renameDir(oldPath, newPath):
 		rename(oldPath, newPath)
 		return 1
 	except OSError as err:
-		print("[Directories] Error %d: Couldn't rename directory '%s' to '%s'!	(%s)" % (err.errno, oldPath, newPath, err.strerror))
+		print("[Directories] Error %d: Couldn't rename directory '%s' to '%s'!  (%s)" % (err.errno, oldPath, newPath, err.strerror))
 	return 0
 
 
-def hasHardLinks(path):	 # Test if the volume containing path supports hard links.
+def hasHardLinks(path):  # Test if the volume containing path supports hard links.
 	try:
 		fd, srcName = mkstemp(prefix="HardLink_", suffix=".test", dir=path, text=False)
 	except OSError as err:
-		print("[Directories] Error %d: Creating temp file!	(%s)" % (err.errno, err.strerror))
+		print("[Directories] Error %d: Creating temp file!  (%s)" % (err.errno, err.strerror))
 		return False
 	dstName = "%s.link" % splitext(srcName)[0]
 	try:
 		link(srcName, dstName)
 		result = True
 	except OSError as err:
-		print("[Directories] Error %d: Creating hard link!	(%s)" % (err.errno, err.strerror))
+		print("[Directories] Error %d: Creating hard link!  (%s)" % (err.errno, err.strerror))
 		result = False
 	try:
 		remove(srcName)
