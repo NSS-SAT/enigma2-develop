@@ -28,7 +28,7 @@ from Screens.SimpleSummary import SimpleSummary
 from sys import stdout
 
 profile("Bouquets")
-from Components.config import config, configfile, ConfigText, ConfigYesNo, ConfigInteger, ConfigSelection, NoSave
+from Components.config import config, configfile, ConfigText, ConfigYesNo, ConfigInteger, ConfigSelection, NoSave, ConfigDirectory
 
 config.misc.load_unlinked_userbouquets = ConfigSelection(default="1", choices=[("0", _("Off")), ("1", _("Top")), ("2", _("Bottom"))])
 if config.misc.load_unlinked_userbouquets.value.lower() in ("true", "false"):
@@ -56,20 +56,42 @@ profile("LOAD:Tools")
 from Tools.Directories import InitFallbackFiles, resolveFilename, SCOPE_PLUGINS, SCOPE_CURRENT_SKIN
 InitFallbackFiles()
 
+
+def getMountPoints():
+	mount_points = []
+	with open('/proc/mounts', 'r') as mounts:
+		for line in mounts:
+			parts = line.split()
+			mount_point = parts[1]
+			if os.path.ismount(mount_point):
+				mount_points.append(mount_point)
+	return mount_points
+
+
+mount_points = getMountPoints()
+mount_point = None
+for mp in mount_points:
+	epg_path = os.path.join(mp, 'epg.dat')
+	if os.path.exists(epg_path):
+		mount_point = epg_path
+		break
+
+mount_point = mount_point or '/etc/enigma2/epg.dat'
+
 profile("config.misc")
 config.misc.radiopic = ConfigText(default=resolveFilename(SCOPE_CURRENT_SKIN, "radio.mvi"))
 config.misc.blackradiopic = ConfigText(default=resolveFilename(SCOPE_CURRENT_SKIN, "black.mvi"))
-config.misc.startCounter = ConfigInteger(default=0) # number of e2 starts...
-config.misc.standbyCounter = NoSave(ConfigInteger(default=0)) # number of standby
-config.misc.DeepStandby = NoSave(ConfigYesNo(default=False)) # detect deepstandby
-config.misc.RestartUI = ConfigYesNo(default=False) # detect user interface restart
+config.misc.startCounter = ConfigInteger(default=0)  # number of e2 starts...
+config.misc.standbyCounter = NoSave(ConfigInteger(default=0))  # number of standby
+config.misc.DeepStandby = NoSave(ConfigYesNo(default=False))  # detect deepstandby
+config.misc.RestartUI = ConfigYesNo(default=False)  # detect user interface restart
 config.misc.prev_wakeup_time = ConfigInteger(default=0)
 # config.misc.prev_wakeup_time_type is only valid when wakeup_time is not 0
 config.misc.prev_wakeup_time_type = ConfigInteger(default=0)
 # 0 = RecordTimer, 1 = ZapTimer, 2 = Plugins, 3 = WakeupTimer
-config.misc.epgcache_filename = ConfigText(default="/media/hdd/epg.dat", fixed_size=False)
-
-# New Plugin Style	- <!-- add @lululla -->
+config.misc.epgcache_filename = ConfigDirectory(mount_point)
+# config.misc.epgcache_filename = ConfigText(default="/media/usb/epg.dat", fixed_size=False)
+# New Plugin Style  - <!-- add @lululla -->
 config.misc.pluginstyle = ConfigSelection(default="New Style 2", choices=[
 	("normallstyle", _("New Style 5")),
 	("newstyle1", _("New Style 1")),
@@ -81,7 +103,7 @@ config.misc.pluginstyle = ConfigSelection(default="New Style 2", choices=[
 	("newstyle7", _("New Style 7")),
 	("newstyle8", _("New Style 8")),
 	("newstyle9", _("New Style 9")),
-	])
+])
 
 
 def setEPGCachePath(configElement):
@@ -91,12 +113,12 @@ def setEPGCachePath(configElement):
 
 # demo code for use of standby enter leave callbacks
 # def leaveStandby():
-#	print "!!!!!!!!!!!!!!!!!leave standby"
+#   print "!!!!!!!!!!!!!!!!!leave standby"
 
 # def standbyCountChanged(configElement):
-#	print "!!!!!!!!!!!!!!!!!enter standby num", configElement.value
-#	from Screens.Standby import inStandby
-#	inStandby.onClose.append(leaveStandby)
+#   print "!!!!!!!!!!!!!!!!!enter standby num", configElement.value
+#   from Screens.Standby import inStandby
+#   inStandby.onClose.append(leaveStandby)
 
 # config.misc.standbyCounter.addNotifier(standbyCountChanged, initial_call = False)
 # ###################################################
@@ -105,10 +127,8 @@ def setEPGCachePath(configElement):
 profile("Twisted")
 try:
 	import twisted.python.runtime
-
 	import e2reactor
 	e2reactor.install()
-
 	from twisted.internet import reactor
 
 	def runReactor():
@@ -165,24 +185,24 @@ Screen.globalScreen = Globals()
 # Session.open:
 # * push current active dialog ('current_dialog') onto stack
 # * call execEnd for this dialog
-#	* clear in_exec flag
-#	* hide screen
+#   * clear in_exec flag
+#   * hide screen
 # * instantiate new dialog into 'current_dialog'
-#	* create screens, components
-#	* read, apply skin
-#	* create GUI for screen
+#   * create screens, components
+#   * read, apply skin
+#   * create GUI for screen
 # * call execBegin for new dialog
-#	* set in_exec
-#	* show gui screen
-#	* call components' / screen's onExecBegin
+#   * set in_exec
+#   * show gui screen
+#   * call components' / screen's onExecBegin
 # ... screen is active, until it calls 'close'...
 # Session.close:
 # * assert in_exec
 # * save return value
 # * start deferred close handler ('onClose')
 # * execEnd
-#	* clear in_exec
-#	* hide screen
+#   * clear in_exec
+#   * hide screen
 # .. a moment later:
 # Session.doClose:
 # * destroy screen
@@ -221,7 +241,7 @@ class Session:
 
 		if self.current_dialog.isTmp:
 			self.current_dialog.doClose()
-            # dump(self.current_dialog)
+			# dump(self.current_dialog)
 			del self.current_dialog
 		else:
 			del self.current_dialog.callback
@@ -401,7 +421,6 @@ class PowerKey:
 				except:
 					print("[StartEnigma] Error during executing module %s, screen %s" % (selected[1], selected[2]))
 			elif selected[0] == "Menu":
-				from Screens.Menu import MainMenu, mdom
 				root = mdom.getroot()
 				for x in root.findall("menu"):
 					if x.get("key") == "shutdown":
@@ -520,9 +539,9 @@ def runScreenTest():
 	nowTime = time()
 	wakeupList = [
 		x for x in ((session.nav.RecordTimer.getNextRecordingTime(), 0),
-					(session.nav.RecordTimer.getNextZapTime(isWakeup=True), 1),
-					(plugins.getNextWakeupTime(), 2),
-					(isNextWakeupTime(), 3))
+				   (session.nav.RecordTimer.getNextZapTime(isWakeup=True), 1),
+				   (plugins.getNextWakeupTime(), 2),
+				   (isNextWakeupTime(), 3))
 		if x[0] != -1
 	]
 	wakeupList.sort()
