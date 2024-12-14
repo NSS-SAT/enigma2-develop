@@ -1,15 +1,15 @@
 from errno import ENOENT, EXDEV
 from os import F_OK, R_OK, W_OK, access, chmod, link, listdir, makedirs, mkdir, readlink, remove, rename, rmdir, sep, stat, statvfs, symlink, utime, walk
-from os.path import basename, dirname, exists, getsize, isdir, isfile, islink, join as pathjoin, normpath, splitext
+from os.path import basename, exists, getsize, isdir, isfile, islink, join as pathjoin, splitext
 from re import compile, split
 from shutil import copy2
 from stat import S_IMODE
 from sys import _getframe as getframe
 from tempfile import mkstemp
 from traceback import print_exc
-from xml.etree.ElementTree import Element, ParseError, fromstring, parse
+from xml.etree.ElementTree import Element, fromstring, parse
 from unicodedata import normalize
-from enigma import eEnv, getDesktop, eGetEnigmaDebugLvl
+from enigma import eEnv, eGetEnigmaDebugLvl
 import os
 DEFAULT_MODULE_NAME = __name__.split(".")[-1]
 
@@ -316,7 +316,7 @@ def fileReadLine(filename, default=None, source=DEFAULT_MODULE_NAME, debug=False
 		if err.errno != ENOENT:  # ENOENT - No such file or directory.
 			print("[%s] Error %d: Unable to read a line from file '%s'!  (%s)" % (source, err.errno, filename, err.strerror))
 		line = default
-		msg = "Default"
+		# msg = "Default"
 	# if debug or forceDebug:
 		# print("[%s] Line %d: %s '%s' from file '%s'." % (source, getframe(1).f_lineno, msg, line, filename))
 	return line
@@ -598,7 +598,7 @@ def fileWriteLine(filename, line, source=DEFAULT_MODULE_NAME, debug=False):
 		result = 1
 	except OSError as err:
 		print("[%s] Error %d: Unable to write a line to file '%s'!  (%s)" % (source, err.errno, filename, err.strerror))
-		msg = "Failed to write"
+		# msg = "Failed to write"
 		result = 0
 	# if debug or forceDebug:
 		# print("[%s] Line %d: %s '%s' to file '%s'." % (source, getframe(1).f_lineno, msg, line, filename))
@@ -621,7 +621,7 @@ def fileReadLines(filename, default=None, source=DEFAULT_MODULE_NAME, debug=Fals
 		if err.errno != ENOENT:  # ENOENT - No such file or directory.
 			print("[%s] Error %d: Unable to read lines from file '%s'!  (%s)" % (source, err.errno, filename, err.strerror))
 		lines = default
-		msg = "Default"
+		# msg = "Default"
 	# if debug or forceDebug:
 		# length = len(lines) if lines else 0
 		# print("[%s] Line %d: %s %d lines from file '%s'." % (source, getframe(1).f_lineno, msg, length, filename))
@@ -640,7 +640,7 @@ def fileWriteLines(filename, lines, source=DEFAULT_MODULE_NAME, debug=False):
 	except OSError as err:
 		print("[%s] Error %d: Unable to write %d lines to file '%s'!  (%s)" % (source, err.errno, len(lines), filename, err.strerror))
 		msg = "Failed to write"
-		result = 0
+		# result = 0
 	# if debug or forceDebug:
 		# print("[%s] Line %d: %s %d lines to file '%s'." % (source, getframe(1).f_lineno, msg, len(lines), filename))
 	return result
