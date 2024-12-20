@@ -3,8 +3,7 @@ from enigma import eAVSwitch, eDVBVolumecontrol, getDesktop
 from Components.SystemInfo import BoxInfo
 import os
 
-iAVSwitch = None  # will be initialized later, allows to import name 'iAVSwitch' from 'Components.AVSwitch'
-
+iAVSwitch = None # will be initialized later, allows to import name 'iAVSwitch' from 'Components.AVSwitch'
 
 class AVSwitch:
 	def setInput(self, input):
@@ -22,17 +21,17 @@ class AVSwitch:
 
 	def getOutputAspect(self):
 		valstr = config.av.aspectratio.value
-		if valstr in ("4_3_letterbox", "4_3_panscan"):  # 4:3
+		if valstr in ("4_3_letterbox", "4_3_panscan"): # 4:3
 			return (4, 3)
-		elif valstr == "16_9":  # auto ... 4:3 or 16:9
+		elif valstr == "16_9": # auto ... 4:3 or 16:9
 			try:
-				if "1" in open("/proc/stb/vmpeg/0/aspect", "r").read():  # 4:3
+				if "1" in open("/proc/stb/vmpeg/0/aspect", "r").read(): # 4:3
 					return (4, 3)
 			except IOError:
 				pass
-		elif valstr in ("16_9_always", "16_9_letterbox"):  # 16:9
+		elif valstr in ("16_9_always", "16_9_letterbox"): # 16:9
 			pass
-		elif valstr in ("16_10_letterbox", "16_10_panscan"):  # 16:10
+		elif valstr in ("16_10_letterbox", "16_10_panscan"): # 16:10
 			return (16, 10)
 		return (16, 9)
 
@@ -61,9 +60,9 @@ class AVSwitch:
 
 	def setAspectWSS(self, aspect=None):
 		if not config.av.wss.value:
-			value = 2  # auto(4:3_off)
+			value = 2 # auto(4:3_off)
 		else:
-			value = 1  # auto
+			value = 1 # auto
 		eAVSwitch.getInstance().setWSS(value)
 
 
@@ -89,7 +88,6 @@ def InitAVSwitch():
 			"16_10_letterbox": _("16:10 Letterbox"),
 			"16_10_panscan": _("16:10 PanScan"),
 			"16_9_letterbox": _("16:9 Letterbox")},
-			# "auto": _("Auto"),
 			default="16_9_always")
 	config.av.aspect = ConfigSelection(choices={
 			"4_3": "4:3",
