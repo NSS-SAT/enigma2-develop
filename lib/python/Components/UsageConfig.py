@@ -10,7 +10,7 @@ from Components.config import ConfigSelection, ConfigText, ConfigNumber
 from Components.config import ConfigSelectionNumber, ConfigClock, ConfigPassword
 from Components.config import ConfigSlider, ConfigEnableDisable, ConfigInteger
 from Components.config import ConfigSubDict, ConfigDictionarySet
-from Components.config import ConfigSubsection, ConfigYesNo, config
+from Components.config import ConfigSubsection, ConfigYesNo, config, NoSave
 from Tools.Directories import defaultRecordingLocation, fileExists
 from enigma import eBackgroundFileEraser, eServiceEvent, eDVBLocalTimeHandler, eEPGCache
 from enigma import setEnableTtCachingOnOff, eEnv, eDVBDB, Misc_Options
@@ -166,7 +166,7 @@ def InitUsageConfig():
 		("keep", _("Keep service")),
 		("reverseB", _("Reverse bouquet buttons")),
 		("keep reverseB", _("Keep service") + " + " + _("Reverse bouquet buttons"))])
-	
+
 	config.usage.servicenum_fontsize = ConfigSelectionNumber(default=0, stepwidth=1, min=-8, max=10, wraparound=True)
 	config.usage.servicenum_fontsize.addNotifier(redrawServiceList, initial_call=False)
 	config.usage.servicename_fontsize = ConfigSelectionNumber(default=0, stepwidth=1, min=-8, max=10, wraparound=True)
@@ -190,7 +190,7 @@ def InitUsageConfig():
 	config.usage.show_infobar_on_zap = ConfigYesNo(default=True)
 	config.usage.show_infobar_on_skip = ConfigYesNo(default=True)
 	config.usage.show_infobar_on_event_change = ConfigYesNo(default=False)
-	config.usage.show_second_infobar = ConfigSelection(default="0", choices=[("", _("None"))] + choicelist + [("EPG", _("EPG"))])
+	config.usage.show_second_infobar = ConfigSelection(default="0", choices=[("no", _("None"))] + choicelist + [("EPG", _("EPG"))])
 	config.usage.show_simple_second_infobar = ConfigYesNo(default=False)
 	config.usage.show_infobar_adds = ConfigYesNo(default=False)
 	config.usage.infobar_frontend_source = ConfigSelection(default="settings", choices=[("settings", _("Settings")), ("tuner", _("Tuner"))])
@@ -260,6 +260,12 @@ def InitUsageConfig():
 		("simple", _("Normal")),
 		("intermediate", _("Advanced")),
 		("expert", _("Expert"))])
+
+	config.usage.help_sortorder = ConfigSelection(default="headings+alphabetic", choices=[
+		("headings+alphabetic", _("Alphabetical under headings")),
+		("flat+alphabetic", _("Flat alphabetical")),
+		("flat+remotepos", _("Flat by position on remote")),
+		("flat+remotegroups", _("Flat by key group on remote"))])
 
 	config.usage.startup_to_standby = ConfigSelection(default="no", choices=[
 		("no", _("no")),
@@ -539,7 +545,7 @@ def InitUsageConfig():
 	config.usage.multiboot_order = ConfigYesNo(default=True)
 
 	config.usage.setupShowDefault = ConfigSelection(default="spaces", choices=[
-		("", _("Don't show default")),
+		("no", _("Don't show default")),
 		("spaces", _("Show default after description")),
 		("newline", _("Show default on new line"))
 	])
@@ -595,6 +601,7 @@ def InitUsageConfig():
 		return _("0 minutes")
 	choices = [(0, _('None'))] + [(i, wdhm(i)) for i in [i * 15 for i in range(1, 4)] + [i * 60 for i in range(1, 9)] + [i * 120 for i in range(5, 12)] + [i * 24 * 60 for i in range(1, 8)]]
 	config.epg.histminutes = ConfigSelection(default=0, choices=choices)
+
 	def EpgHistorySecondsChanged(configElement):
 		from enigma import eEPGCache
 		eEPGCache.getInstance().setEpgHistorySeconds(int(configElement.value) * 60)
@@ -719,6 +726,12 @@ def InitUsageConfig():
 			choicelist.append((str(i)))
 		config.usage.vfd_final_scroll_delay = ConfigSelection(default="1000", choices=choicelist)
 		config.usage.vfd_final_scroll_delay.addNotifier(final_scroll_delay, immediate_feedback=False)
+
+	def quadpip_mode_notifier(configElement):
+		if BoxInfo.getItem("HasQuadpip"):
+			open(BoxInfo.getItem("HasQuadpip"), "w").write("mosaic" if configElement.value else "normal")
+	config.usage.QuadpipMode = NoSave(ConfigYesNo(default=False))
+	config.usage.QuadpipMode.addNotifier(quadpip_mode_notifier)
 
 	config.subtitles = ConfigSubsection()
 	config.subtitles.show = ConfigYesNo(default=True)
@@ -884,13 +897,11 @@ def InitUsageConfig():
 	config.autolanguage.subtitle_defaultdvb = ConfigYesNo(default=False)
 	config.autolanguage.subtitle_usecache = ConfigYesNo(default=True)
 
-
 	config.misc.softcam_setup = ConfigSubsection()
 	config.misc.softcam_setup.extension_menu = ConfigYesNo(default=True)
 	config.misc.softcam_streamrelay_url = ConfigIP(default=[127, 0, 0, 1], auto_jump=True)
 	config.misc.softcam_streamrelay_port = ConfigInteger(default=17999, limits=(0, 65535))
 	config.misc.softcam_streamrelay_delay = ConfigSelectionNumber(min=0, max=2000, stepwidth=50, default=100, wraparound=True)
-
 	config.softcam = ConfigSubsection()
 	config.softcam.showInExtensions = ConfigYesNo(default=False)
 	config.softcam.hideServerName = ConfigYesNo(default=False)
@@ -919,7 +930,6 @@ def InitUsageConfig():
 	# ] + [(x, ngettext("%d Second", "%d Seconds", x) % x) for x in (2, 5, 10, 20, 30)] + [(x * 60, ngettext("%d Minute", "%d Minutes", x) % x) for x in (1, 2, 3)]
 	# config.oscaminfo.autoUpdateLog = ConfigSelection(default=0, choices=choiceList)
 	# BoxInfo.setItem("OScamInstalled", False)
-
 	config.cccaminfo = ConfigSubsection()
 	config.cccaminfo.serverNameLength = ConfigSelectionNumber(min=10, max=100, stepwidth=1, default=22, wraparound=True)
 	config.cccaminfo.name = ConfigText(default="Profile", fixed_size=False)
@@ -951,7 +961,7 @@ def InitUsageConfig():
 
 	def timesyncChanged(configElement):
 		if configElement.value == "ntp" or configElement.value == "auto":
-			if not os.path.isfile('/var/spool/cron/crontabs/root') or not 'ntpdate-sync' in open('/var/spool/cron/crontabs/root').read():
+			if not os.path.isfile('/var/spool/cron/crontabs/root') or 'ntpdate-sync' not in open('/var/spool/cron/crontabs/root').read():
 				Console().ePopen("echo '30 * * * *	  /usr/bin/ntpdate-sync silent' >> /var/spool/cron/crontabs/root")
 			if not os.path.islink('/etc/network/if-up.d/ntpdate-sync'):
 				Console().ePopen("ln -s /usr/bin/ntpdate-sync /etc/network/if-up.d/ntpdate-sync")
