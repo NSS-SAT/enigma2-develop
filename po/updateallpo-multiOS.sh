@@ -1,6 +1,6 @@
 #!/bin/bash
 # Script to generate po files outside of the normal build process
-# Author: Pr2 for OpenPLi Team
+# Author: Pr2 for Nonsolosat Team
 # Version: 1.3
 # 
 # This script is derivated from updateallpo.sh it is intended to all you
