@@ -7,7 +7,7 @@
 #
 # Run this script from within the po folder.
 #
-# Author: Pr2 for OpenPLi Team
+# Author: Pr2 for Nonsolosat Team
 # Version: 1.2
 #
 # Retrieve languages from Makefile.am LANGS variable for backward compatibility
