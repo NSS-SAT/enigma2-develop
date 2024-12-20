@@ -3,7 +3,7 @@
 # but it has left in place for old skins.
 #
 # Skinners that want to use menu icons should read:
-# https://github.com/OpenPLi/enigma2/blob/develop/doc/MENU
+# https://github.com/NSS/enigma2/blob/develop/doc/MENU
 #
 
 from Components.Converter.Converter import Converter
