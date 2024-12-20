@@ -37,7 +37,12 @@ from Plugins.Extensions.Manager.plugin import Manager
 self.session.open(Manager)	
 </code>
 		</item>
-
+		<item weight="12" level="0" text="NSS EPGImport" key="EPGImport">
+			<code>
+from Plugins.Extensions.EPGImport.plugin import EPGImportConfig
+self.session.open(EPGImportConfig)
+</code>
+		</item>
 		<item weight="12" level="0" text="NSS LCN" key="Terrestrial">
 			<code>
 from Screens.Terrestrial import PluginSetup
@@ -50,7 +55,7 @@ from Screens.vavoo import MainVavoox
 self.session.open(MainVavoox)  
 </code>
 		</item>
-		<item weight="14" level="0" text="NSS Radio Stream Live" key="radiom">
+		<item weight="14" level="0" text="NSS Radio Stream" key="radiom">
 			<code>
 from Screens.radio import radiom1
 self.session.open(radiom1)	
@@ -82,7 +87,9 @@ self.session.open(CrashLogScreen)
 	<item key="timer_edit" level="0" text="Timer">
 		<screen module="TimerEdit" screen="TimerEditList"/>
 	</item>
-
+	<item key="scart_switch" level="1" text="VCR scart" conditional="config.usage.show_vcr_scart.value" requires="ScartSwitch">
+		<code>self.session.scart.VCRSbChanged(3)</code>
+	</item>
 	<menu key="information" level="0" text="Information">
 		<item key="service_info_screen" level="1" text="Service">
 			<screen module="ServiceInfo" screen="ServiceInfo"/>
@@ -212,25 +219,25 @@ self.session.open(CrashLogScreen)
 		</item>
 	</menu>
 	<menu key="shutdown" text="Standby / restart">
-		<item key="sleep" text="Sleep timer">
-			<screen module="SleepTimerEdit" screen="SleepTimerEdit"/>
-		</item>
 		<item key="multiboot" text="Multiboot" requires="canMultiBoot">
 			<screen module="FlashImage" screen="MultibootSelection">1</screen>
 		</item>
-		<item key="restart_enigma_debug" text="Restart enigma in debug mode" requires="!InDebugMode">
+		<item key="sleep" text="Sleep timer">
+			<screen module="SleepTimerEdit" screen="SleepTimerEdit"/>
+		</item>
+		<item key="dualboot" weight="24" level="0" text="Switch to Android" requires="canDualBoot">
+			<screen module="Standby" screen="SwitchToAndroid"/>
+		</item>
+		<item key="restart_enigma_debug" text="Restart enigma" requires="InDebugMode">
 			<screen module="Standby" screen="TryQuitMainloop">6</screen>
 		</item>
 		<item key="restart_enigma" text="Restart enigma in standard mode" requires="InDebugMode">
 			<screen module="Standby" screen="TryQuitMainloop">3</screen>
 		</item>
-		<item key="restart_enigma_debug" text="Restart enigma" requires="InDebugMode">
+		<item key="restart_enigma_debug" text="Restart enigma in debug mode" requires="!InDebugMode">
 			<screen module="Standby" screen="TryQuitMainloop">6</screen>
 		</item>
 		<item key="deep_standby" text="Deep standby" requires="DeepstandbySupport">
-			<screen module="Standby" screen="TryQuitMainloop">1</screen>
-		</item>
-		<item key="deep_standby" text="Shutdown" requires="!DeepstandbySupport">
 			<screen module="Standby" screen="TryQuitMainloop">1</screen>
 		</item>
 		<item key="standby" text="Standby">
@@ -239,10 +246,9 @@ self.session.open(CrashLogScreen)
 		<item key="restart" text="Restart">
 			<screen module="Standby" screen="TryQuitMainloop">2</screen>
 		</item>
-		<item key="dualboot" weight="24" level="0" text="Switch to Android" requires="canDualBoot">
-			<screen module="Standby" screen="SwitchToAndroid"/>
+		<item key="deep_standby" text="Shutdown" requires="!DeepstandbySupport">
+			<screen module="Standby" screen="TryQuitMainloop">1</screen>
 		</item>
-
 		<item key="restart_enigma" text="Restart enigma" requires="!InDebugMode">
 			<screen module="Standby" screen="TryQuitMainloop">3</screen>
 		</item>
