@@ -221,11 +221,11 @@ class CommitInfo(Screen):
 
 		self.project = 0
 		self.projects = [
-			("https://api.github.com/repos/openpli/enigma2/commits" + branch, "Enigma2", API_GITHUB),
-			("https://api.github.com/repos/openpli/openpli-oe-core/commits" + branch, "Nonsolosat Oe Core", API_GITHUB),
-			("https://api.github.com/repos/openpli/enigma2-plugins/commits" + branch_e2plugins, "Enigma2 Plugins", API_GITHUB),
-			("https://api.github.com/repos/openpli/aio-grab/commits", "Aio Grab", API_GITHUB),
-			("https://api.github.com/repos/openpli/enigma2-plugin-extensions-epgimport/commits", "Plugin EPGImport", API_GITHUB),
+			("https://api.github.com/repos/nonsolosat/enigma2/commits" + branch, "Enigma2", API_GITHUB),
+			("https://api.github.com/repos/nonsolosat/nonsolosat-oe-core/commits" + branch, "Nonsolosat Oe Core", API_GITHUB),
+			("https://api.github.com/repos/nonsolosat/enigma2-plugins/commits" + branch_e2plugins, "Enigma2 Plugins", API_GITHUB),
+			("https://api.github.com/repos/nonsolosat/aio-grab/commits", "Aio Grab", API_GITHUB),
+			("https://api.github.com/repos/nonsolosat/enigma2-plugin-extensions-epgimport/commits", "Plugin EPGImport", API_GITHUB),
 			("https://api.github.com/repos/littlesat/skin-PLiHD/commits", "Skin PLi HD", API_GITHUB),
 			("https://api.github.com/repos/E2OpenPlugins/e2openplugin-OpenWebif/commits", "OpenWebif", API_GITHUB),
 			("https://gitlab.openpli.org/api/v4/projects/5/repository/commits", "Hans settings", API_GITLAB)
