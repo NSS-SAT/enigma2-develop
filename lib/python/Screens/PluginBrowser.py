@@ -1,19 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# from Components import Opkg
-# from Components.ServiceList import refreshServiceList
-# from Components.SystemInfo import SystemInfo, hassoftcaminstalled
-# from time import time
-# import os
-# mod by @Lululla
-
-# from Components import Opkg
+from Components import Opkg
 from Components.ActionMap import ActionMap, NumberActionMap
 from Components.ConfigList import ConfigListScreen
 from Components.Harddisk import harddiskmanager
 from Components.Label import Label
 from Components.Language import language
-from Components.Opkg import opkgAddDestination, opkgExtraDestinations, enumPlugins
 from Components.Pixmap import Pixmap
 from Components.PluginComponent import plugins
 from Components.PluginList import PluginCategoryComponent, PluginDownloadComponent
@@ -31,13 +23,13 @@ from Screens.Screen import Screen
 from Tools.Directories import fileExists, resolveFilename, SCOPE_PLUGINS, SCOPE_CURRENT_SKIN
 from Tools.LoadPixmap import LoadPixmap
 from enigma import eConsoleAppContainer, eDVBDB, eTimer, eSize, ePoint, getDesktop
-from os import system, unlink
-from os.path import normpath, isfile
-# from re import compile
+from os import system
 from skin import parseColor
-import math
 from time import time
+import os
+import math
 language.addCallback(plugins.reloadPlugins)
+
 config.misc.pluginbrowser = ConfigSubsection()
 config.misc.pluginbrowser.plugin_order = ConfigText(default="")
 PLUGIN_LIST = 0
@@ -307,11 +299,7 @@ class PluginBrowser(Screen, ProtectedScreen):
         self.session.openWithCallback(self.PluginDownloadBrowserClosed, PluginDownloadBrowser, PluginDownloadBrowser.DOWNLOAD, self.firsttime)
         self.firsttime = False
 
-    # def PluginDownloadBrowserClosed(self):
-        # self.updateList()
-        # self.checkWarnings()
-
-    def PluginDownloadBrowserClosed(self, returnValue=None):
+    def PluginDownloadBrowserClosed(self, returnValue):
         if returnValue is None:
             self.updateList()
             self.checkWarnings()
@@ -346,7 +334,7 @@ class PluginDownloadBrowser(Screen):
         self.container.appClosed.append(self.runFinished)
         self.container.dataAvail.append(self.dataAvail)
         self.onLayoutFinish.append(self.startRun)
-        self.setTitle(self.type == self.DOWNLOAD and _("Downloadable new plugins") or _("Remove plugins"))
+        self.setTitle(_("Downloadable new plugins") if self.type == self.DOWNLOAD else _("Remove plugins"))
         self.list = []
         self["list"] = PluginList(self.list)
         self.pluginlist = []
@@ -359,7 +347,9 @@ class PluginDownloadBrowser(Screen):
         self.install_settings_name = ''
         self.remove_settings_name = ''
         self["text"] = Label(_("Downloading plugin information. Please wait...") if self.type == self.DOWNLOAD else _("Getting plugin information. Please wait..."))
-        self["key_red" if self.type == self.DOWNLOAD else "key_green"] = Label(_("Remove plugins") if self.type == self.DOWNLOAD else _("Download plugins"))
+        self["key_red"] = Label(_("Cancel"))
+        self["key_green"] = Label(_("Expand"))
+        self["key_blue"] = Label(_("Remove plugins") if self.type == self.DOWNLOAD else _("Download plugins"))
         self.run = 0
         self.remainingdata = ""
         self["actions"] = ActionMap(["WizardActions"],
@@ -367,8 +357,12 @@ class PluginDownloadBrowser(Screen):
             "ok": self.go,
             "back": self.requestClose,
         })
-        self["PluginDownloadActions"] = ActionMap(["ColorActions"], {"red": self.delete} if self.type == self.DOWNLOAD else {"green": self.download})
-        if isfile('/usr/bin/opkg'):
+        self["PluginDownloadActions"] = ActionMap(["ColorActions"], {
+            "blue": self.delete if self.type == self.DOWNLOAD else self.download,
+            "red": self.requestClose,
+            "green": self.go}
+        )
+        if os.path.isfile('/usr/bin/opkg'):
             self.opkg = '/usr/bin/opkg'
             self.opkg_install = self.opkg + ' install'
             self.opkg_remove = self.opkg + ' remove --autoremove'
@@ -376,25 +370,32 @@ class PluginDownloadBrowser(Screen):
             self.opkg = 'opkg'
             self.opkg_install = 'opkg install -force-defaults'
             self.opkg_remove = self.opkg + ' remove'
+        self["list"].onSelectionChanged.append(self.selectionChanged)
+
+    def selectionChanged(self):
+        selection = self["list"].l.getCurrentSelection()
+        if selection:
+            selection = selection[0]
+            if isinstance(selection, str):  # category
+                self["key_green"].text = _("Collapse") if selection in self.expanded else _("Expand")
+            else:
+                self["key_green"].text = _("Install plugin") if self.type == self.DOWNLOAD else _("Remove plugin")
 
     def go(self):
-        sel = self["list"].l.getCurrentSelection()
-
-        if sel is None:
-            return
-
-        sel = sel[0]
-        if isinstance(sel, str):  # category
-            if sel in self.expanded:
-                self.expanded.remove(sel)
+        selection = self["list"].l.getCurrentSelection()
+        if selection:
+            selection = selection[0]
+            if isinstance(selection, str):  # category
+                if selection in self.expanded:
+                    self.expanded.remove(selection)
+                else:
+                    self.expanded.append(selection)
+                self.updateList()
             else:
-                self.expanded.append(sel)
-            self.updateList()
-        else:
-            if self.type == self.DOWNLOAD:
-                self.session.openWithCallback(self.runInstall, MessageBox, _("Do you really want to download\nthe plugin \"%s\"?") % sel.name)
-            elif self.type == self.REMOVE:
-                self.session.openWithCallback(self.runInstall, MessageBox, _("Do you really want to remove\nthe plugin \"%s\"?") % sel.name)
+                if self.type == self.DOWNLOAD:
+                    self.session.openWithCallback(self.runInstall, MessageBox, _("Do you really want to download\nthe plugin \"%s\"?") % selection.name)
+                elif self.type == self.REMOVE:
+                    self.session.openWithCallback(self.runInstall, MessageBox, _("Do you really want to remove\nthe plugin \"%s\"?") % selection.name)
 
     def delete(self):
         self.requestClose(1)
@@ -430,9 +431,9 @@ class PluginDownloadBrowser(Screen):
             dest = result[1]
             if dest.startswith('/'):
                 # Custom install path, add it to the list too
-                dest = normpath(dest)
+                dest = os.path.normpath(dest)
                 extra = '--add-dest %s:%s -d %s' % (dest, dest, dest)
-                opkgAddDestination(dest)
+                Opkg.opkgAddDestination(dest)
             else:
                 extra = '-d ' + dest
             self.doInstall(self.installFinished, self["list"].l.getCurrentSelection()[0].name + ' ' + extra)
@@ -466,7 +467,7 @@ class PluginDownloadBrowser(Screen):
 
     def doRemove(self, callback, pkgname):
         pkgname = self.PLUGIN_PREFIX + pkgname
-        self.session.openWithCallback(callback, Console, cmdlist=[self.opkg_remove + opkgExtraDestinations() + " " + pkgname, "sync"], skin="Console_Pig")
+        self.session.openWithCallback(callback, Console, cmdlist=[self.opkg_remove + Opkg.opkgExtraDestinations() + " " + pkgname, "sync"], skin="Console_Pig")
 
     def doInstall(self, callback, pkgname):
         pkgname = self.PLUGIN_PREFIX + pkgname
@@ -480,10 +481,10 @@ class PluginDownloadBrowser(Screen):
         self.doInstall(self.installFinished, self.install_settings_name)
 
     def startOpkgListInstalled(self, pkgname=PLUGIN_PREFIX + '*'):
-        self.container.execute(self.opkg + opkgExtraDestinations() + " list_installed '%s'" % pkgname)
+        self.container.execute(self.opkg + Opkg.opkgExtraDestinations() + " list_installed '%s'" % pkgname)
 
     def startOpkgListAvailable(self):
-        self.container.execute(self.opkg + opkgExtraDestinations() + " list '" + self.PLUGIN_PREFIX + "*'")
+        self.container.execute(self.opkg + Opkg.opkgExtraDestinations() + " list '" + self.PLUGIN_PREFIX + "*'")
 
     def startRun(self):
         listsize = self["list"].instance.size()
@@ -510,7 +511,7 @@ class PluginDownloadBrowser(Screen):
                 print("[PluginBrowser] postInstallCall failed:", ex)
             self.resetPostInstall()
         try:
-            unlink('/tmp/opkg.conf')
+            os.unlink('/tmp/opkg.conf')
         except:
             pass
         for plugin in self.pluginlist:
@@ -540,7 +541,7 @@ class PluginDownloadBrowser(Screen):
             self.run = 2
             pluginlist = []
             self.pluginlist = pluginlist
-            for plugin in enumPlugins(self.PLUGIN_PREFIX):
+            for plugin in Opkg.enumPlugins(self.PLUGIN_PREFIX):
                 if plugin[0] not in self.installedplugins:
                     pluginlist.append(plugin + (plugin[0][15:],))
             if pluginlist:
@@ -957,6 +958,21 @@ class PluginBrowserNew(Screen):
                 <convert type="ClockToText">FullDate</convert>
                 </widget>
                 <widget name="pages" foregroundColor="#000080ff" position="%d,%d" size="%d,%d" font="Regular;%d" zPosition="2" horizontalAlignment="center" verticalAlignment="center" transparent="1" />
+                <!--#####red####/-->
+                <ePixmap pixmap="buttons/redbutton.png" position="32,1064" size="300,6" alphatest="blend" objectTypes="key_red,Button,Label" transparent="1" />
+                <widget source="key_red" render="Pixmap" pixmap="buttons/redbutton.png" position="32,1064" size="300,6" alphatest="blend" objectTypes="key_red,StaticText" transparent="1">
+                  <convert type="ConditionalShowHide" />
+                </widget>
+                <widget name="key_red" position="27,1016" size="310,45" zPosition="11" font="Regular; 30" noWrap="1" valign="center" halign="center" backgroundColor="background" objectTypes="key_red,Button,Label" transparent="1" />
+                <widget source="key_red" render="Label" position="27,1016" size="310,45" zPosition="11" font="Regular; 30" noWrap="1" valign="center" halign="center" backgroundColor="background" objectTypes="key_red,StaticText" transparent="1" />
+                <!--#####green####/-->
+                <ePixmap pixmap="buttons/greenbutton.png" position="342,1064" size="300,6" alphatest="blend" objectTypes="key_green,Button,Label" transparent="1" />
+                <widget source="key_green" render="Pixmap" pixmap="buttons/greenbutton.png" position="342,1064" size="300,6" alphatest="blend" objectTypes="key_green,StaticText" transparent="1">
+                  <convert type="ConditionalShowHide" />
+                </widget>
+                <widget name="key_green" position="337,1016" size="310,45" zPosition="11" font="Regular; 30" valign="center" halign="center" backgroundColor="background" objectTypes="key_green,Button,Label" transparent="1" />
+                <widget source="key_green" render="Label" position="337,1016" size="310,45" zPosition="11" font="Regular; 30" valign="center" halign="center" backgroundColor="background" objectTypes="key_green,StaticText" transparent="1" />
+
             """ % (positionx, positiony, sizex, sizey, backgroundColor, backgroundPixmap, positionx1, positiony1, sizex1, sizey1, font1, positionx2, positiony2, sizex2, sizey2, font2, foregroundColor, positionx3, positiony3, sizex3, sizey3, font3, positionx4, positiony4, sizex4, sizey4, font4, positionx5, positiony5, sizex5, sizey5, font5)  # , eLabelx1, eLabely1, eLabel1ysizex, eLabel1ysizey, eLabelx2, eLabely2, eLabel1ysizex, eLabel1ysizey, positionxkey1, positionykey, sizekeysx, sizekeysy, fontkey, positionxkey2, positionykey, sizekeysx, sizekeysy, fontkey)
         count = 0
         for x, p in enumerate(plugins.getPlugins(PluginDescriptor.WHERE_PLUGINMENU)):
