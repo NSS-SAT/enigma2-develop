@@ -1,20 +1,23 @@
-from errno import ENOENT, EXDEV
-from os import F_OK, R_OK, W_OK, access, chmod, link, listdir, makedirs, mkdir, readlink, remove, rename, rmdir, sep, stat, statvfs, symlink, utime, walk
-from os.path import basename, exists, getsize, isdir, isfile, islink, join as pathjoin, splitext
-from re import compile, split
-from shutil import copy2
+# -*- coding: utf-8 -*-
+
+from datetime import datetime
+from enigma import eEnv
+from os import listdir
+from os import F_OK, R_OK, W_OK, access, link, remove, rename, sep
+from os.path import exists as pathExists, isdir as pathIsdir, isfile as pathIsfile, join as pathJoin
+from os.path import splitext
+from re import compile
 from stat import S_IMODE
 from sys import _getframe as getframe
 from tempfile import mkstemp
 from traceback import print_exc
-from xml.etree.ElementTree import Element, fromstring, parse
 from unicodedata import normalize
-from enigma import eEnv, eGetEnigmaDebugLvl
+from xml.etree.ElementTree import Element, fromstring, parse
+from errno import ENOENT
+import errno
 import os
 DEFAULT_MODULE_NAME = __name__.split(".")[-1]
 
-forceDebug = eGetEnigmaDebugLvl() > 4
-pathExists = exists
 
 SCOPE_HOME = 0  # DEBUG: Not currently used in Enigma2.
 SCOPE_LANGUAGE = 1
@@ -171,7 +174,6 @@ def resolveFilename(scope, base="", path_prefix=None):
 				os.path.join(scopeConfig, "skin_common"),
 				scopeConfig,
 				os.path.join(scopeGUISkin, skin),
-
 				os.path.join(scopeGUISkin, "skin_default"),
 				scopeGUISkin
 			)
@@ -190,7 +192,6 @@ def resolveFilename(scope, base="", path_prefix=None):
 				os.path.join(scopeConfig, "display", "skin_common"),
 				scopeConfig,
 				os.path.join(scopeLCDSkin, skin),
-
 				os.path.join(scopeLCDSkin, "skin_default"),
 				scopeLCDSkin
 			)
@@ -262,48 +263,55 @@ def bestRecordingLocation(candidates):
 	biggest = 0
 	for candidate in candidates:
 		try:
-			status = statvfs(candidate[1])  # Must have some free space (i.e. not read-only).
-			if status.f_bavail:
-				size = (status.f_blocks + status.f_bavail) * status.f_bsize  # Free space counts double.
+			# Must have some free space (i.e. not read-only).
+			stat = os.statvfs(candidate[1])
+			if stat.f_bavail:
+				# Free space counts double.
+				size = (stat.f_blocks + stat.f_bavail) * stat.f_bsize
 				if size > biggest:
 					biggest = size
 					path = candidate[1]
-		except OSError as err:
-			print("[Directories] Error %d: Couldn't get free space for '%s'!  (%s)" % (err.errno, candidate[1], err.strerror))
+		except (IOError, OSError) as err:
+			print("[Directories] Error %d: Couldn't get free space for '%s' (%s)" % (err.errno, candidate[1], err.strerror))
 	return path
 
 
 def defaultRecordingLocation(candidate=None):
 	if candidate and pathExists(candidate):
 		return candidate
+	# First, try whatever /hdd points to, or /media/hdd.
 	try:
-		path = readlink("/hdd")  # First, try whatever /hdd points to, or /media/hdd.
-	except OSError as err:
-		print(err)
+		path = os.readlink("/hdd")
+	except OSError:
 		path = "/media/hdd"
-	if not pathExists(path):  # Find the largest local disk.
+	if not pathExists(path):
+		# Find the largest local disk.
 		from Components import Harddisk
-		mounts = [mount for mount in Harddisk.getProcMounts() if mount[1].startswith("/media/")]
-		path = bestRecordingLocation([mount for mount in mounts if mount[0].startswith("/dev/")])  # Search local devices first, use the larger one.
-		if not path:  # If we haven't found a viable candidate yet, try remote mounts.
-			path = bestRecordingLocation([mount for mount in mounts if not mount[0].startswith("/dev/")])
+		mounts = [m for m in Harddisk.getProcMounts() if m[1].startswith("/media/")]
+		# Search local devices first, use the larger one
+		path = bestRecordingLocation([m for m in mounts if m[0].startswith("/dev/")])
+		# If we haven't found a viable candidate yet, try remote mounts.
+		if not path:
+			path = bestRecordingLocation([m for m in mounts if not m[0].startswith("/dev/")])
 	if path:
-		movie = pathjoin(path, "movie", "")  # If there's a movie subdir, we'd probably want to use that (directories need to end in sep).
-		if isdir(movie):
+		# If there's a movie subdir, we'd probably want to use that.
+		movie = os.path.join(path, "movie")
+		if os.path.isdir(movie):
 			path = movie
+		if not path.endswith("/"):
+			path += "/"  # Bad habits die hard, old code relies on this.
 	return path
 
 
 def createDir(path, makeParents=False):
 	try:
 		if makeParents:
-			makedirs(path)
+			os.makedirs(path)
 		else:
-			mkdir(path)
+			os.mkdir(path)
 		return 1
-	except OSError as err:
-		print("[Directories] Error %d: Couldn't create directory '%s'!  (%s)" % (err.errno, path, err.strerror))
-	return 0
+	except OSError:
+		return 0
 
 
 def fileReadLine(filename, default=None, source=DEFAULT_MODULE_NAME, debug=False):
@@ -311,7 +319,7 @@ def fileReadLine(filename, default=None, source=DEFAULT_MODULE_NAME, debug=False
 	try:
 		with open(filename) as fd:
 			line = fd.read().strip().replace("\0", "")
-		msg = "Read"
+		# msg = "Read"
 	except OSError as err:
 		if err.errno != ENOENT:  # ENOENT - No such file or directory.
 			print("[%s] Error %d: Unable to read a line from file '%s'!  (%s)" % (source, err.errno, filename, err.strerror))
@@ -324,30 +332,41 @@ def fileReadLine(filename, default=None, source=DEFAULT_MODULE_NAME, debug=False
 
 def removeDir(path):
 	try:
-		rmdir(path)
+		os.rmdir(path)
 		return 1
-	except OSError as err:
-		print("[Directories] Error %d: Couldn't remove directory '%s'!  (%s)" % (err.errno, path, err.strerror))
-	return 0
+	except OSError:
+		return 0
 
 
-def fileExists(file, mode="r"):
-	return fileAccess(file, mode) and file
+def fileExists(f, mode="r"):
+	if mode == "r":
+		acc_mode = os.R_OK
+	elif mode == "w":
+		acc_mode = os.W_OK
+	else:
+		acc_mode = os.F_OK
+	return os.access(f, acc_mode)
 
 
-def fileCheck(file, mode="r"):
-	return fileAccess(file, mode) and file
+def fileCheck(f, mode="r"):
+	return fileExists(f, mode) and f
+
+
+def fileHas(f, content, mode="r"):
+	result = False
+	if fileExists(f, mode):
+		file = open(f, mode)
+		text = file.read()
+		file.close()
+		if content in text:
+			result = True
+	return result
 
 
 def fileDate(f):
 	if fileExists(f):
-		import datetime
 		return datetime.fromtimestamp(os.stat(f).st_mtime).strftime("%Y-%m-%d")
 	return ("1970-01-01")
-
-
-def fileHas(file, content, mode="r"):
-	return fileContains(file, content, mode)
 
 
 def fileReadXML(filename, default=None, *args, **kwargs):
@@ -367,31 +386,26 @@ def fileReadXML(filename, default=None, *args, **kwargs):
 
 
 def getRecordingFilename(basename, dirname=None):
-	nonAllowedCharacters = "/.\\:*?<>|\""  # Filter out non-allowed characters.
-
-	basename = basename.replace("\x86", "").replace("\x87", "")
-	filename = ""
-	for character in basename:
-		if character in nonAllowedCharacters or ord(character) < 32:
-			character = "_"
-		filename += character
-	# Max filename length for ext4 is 255 (minus 8 characters for .ts.meta)
-	# but must not truncate in the middle of a multi-byte utf8 character!
-	# So convert the truncation to unicode and back, ignoring errors, the
-	# result will be valid utf8 and so xml parsing will be OK.
-	filename = filename[:247]
-	if dirname is None:
-		dirname = defaultRecordingLocation()
+	# The "replaces" remove dvb emphasis chars.
+	# Also, "." is replaced with "_" which respects the original code.
+	# Max filename length for ext4 is 255 bytes (minus 8 bytes for ".ts.meta", minus 4 bytes for "_%03d")
+	filename = sanitizeFilename(basename.replace("\xc2\x86", "").replace("\xc2\x87", "").replace(".", "_"), maxlen=243)
+	if dirname is not None:
+		if not dirname.startswith("/"):
+			dirname = os.path.join(defaultRecordingLocation(), dirname)
 	else:
-		if not dirname.startswith(sep):
-			dirname = pathjoin(defaultRecordingLocation(), dirname)
-	filename = pathjoin(dirname, filename)
-	next = 0
+		dirname = defaultRecordingLocation()
+	filename = os.path.join(dirname, filename)
 	path = filename
-	while isfile("%s.ts" % path):
-		next += 1
-		path = "%s_%03d" % (filename, next)
-	return path
+	i = 1
+	while True:
+		if not os.path.isfile(path + ".ts"):
+			return path
+		path = "%s_%03d" % (filename, i)
+		i += 1
+
+# This is clearly a hack:
+#
 
 
 def InitFallbackFiles():
@@ -400,102 +414,95 @@ def InitFallbackFiles():
 	resolveFilename(SCOPE_CONFIG, "userbouquet.favourites.radio")
 	resolveFilename(SCOPE_CONFIG, "bouquets.radio")
 
-
 # Returns a list of tuples containing pathname and filename matching the given pattern
 # Example-pattern: match all txt-files: ".*\.txt$"
+#
 
 
 def crawlDirectory(directory, pattern):
-	fileList = []
+	list = []
 	if directory:
 		expression = compile(pattern)
-		for root, dirs, files in walk(directory):
+		for root, dirs, files in os.walk(directory):
 			for file in files:
 				if expression.match(file) is not None:
-					fileList.append((root, file))
-	return fileList
-
-
-def copyFile(src, dst):
-	try:
-		copy2(src, dst)
-	except OSError as err:
-		print("[Directories] Error %d: Copying file '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
-		return -1
-	return 0
-	# if isdir(dst):
-	#   dst = pathjoin(dst, basename(src))
-	# try:
-	#   with open(src, "rb") as fd1:
-	#       with open(dst, "w+b") as fd2:
-	#           while True:
-	#               buf = fd1.read(16 * 1024)
-	#               if not buf:
-	#                   break
-	#               fd2.write(buf)
-	#   try:
-	#       status = stat(src)
-	#       try:
-	#           chmod(dst, S_IMODE(status.st_mode))
-	#       except OSError as err:
-	#           print("[Directories] Error %d: Setting modes from '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
-	#       try:
-	#           utime(dst, (status.st_atime, status.st_mtime))
-	#       except OSError as err:
-	#           print("[Directories] Error %d: Setting times from '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
-	#   except OSError as err:
-	#       print("[Directories] Error %d: Obtaining status from '%s'!  (%s)" % (err.errno, src, err.strerror))
-	# except OSError as err:
-	#   print("[Directories] Error %d: Copying file '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
-	#   return -1
-	# return 0
+					list.append((root, file))
+	return list
 
 
 def copyfile(src, dst):
-	return copyFile(src, dst)
+	f1 = None
+	f2 = None
+	status = 0
+	try:
+		f1 = open(src, "rb")
+		if os.path.isdir(dst):
+			dst = os.path.join(dst, os.path.basename(src))
+		f2 = open(dst, "w+b")
+		while True:
+			buf = f1.read(16 * 1024)
+			if not buf:
+				break
+			f2.write(buf)
+	except (IOError, OSError) as err:
+		print("[Directories] Error %d: Copying file '%s' to '%s'! (%s)" % (err.errno, src, dst, err.strerror))
+		status = -1
+	if f1 is not None:
+		f1.close()
+	if f2 is not None:
+		f2.close()
+	try:
+		st = os.stat(src)
+		try:
+			os.chmod(dst, S_IMODE(st.st_mode))
+		except (IOError, OSError) as err:
+			print("[Directories] Error %d: Setting modes from '%s' to '%s'! (%s)" % (err.errno, src, dst, err.strerror))
+		try:
+			os.utime(dst, (st.st_atime, st.st_mtime))
+		except (IOError, OSError) as err:
+			print("[Directories] Error %d: Setting times from '%s' to '%s'! (%s)" % (err.errno, src, dst, err.strerror))
+	except (IOError, OSError) as err:
+		print("[Directories] Error %d: Obtaining stats from '%s' to '%s'! (%s)" % (err.errno, src, dst, err.strerror))
+	return status
 
 
 def copytree(src, dst, symlinks=False):
-	return copyTree(src, dst, symlinks=symlinks)
-
-
-def copyTree(src, dst, symlinks=False):
-	names = listdir(src)
-	if isdir(dst):
-		dst = pathjoin(dst, basename(src))
-		if not isdir(dst):
-			mkdir(dst)
+	names = os.listdir(src)
+	if os.path.isdir(dst):
+		dst = os.path.join(dst, os.path.basename(src))
+		if not os.path.isdir(dst):
+			os.mkdir(dst)
 	else:
-		makedirs(dst)
+		os.makedirs(dst)
 	for name in names:
-		srcName = pathjoin(src, name)
-		dstName = pathjoin(dst, name)
+		srcname = os.path.join(src, name)
+		dstname = os.path.join(dst, name)
 		try:
-			if symlinks and islink(srcName):
-				linkTo = readlink(srcName)
-				symlink(linkTo, dstName)
-			elif isdir(srcName):
-				copytree(srcName, dstName, symlinks)
+			if symlinks and os.path.islink(srcname):
+				linkto = os.readlink(srcname)
+				os.symlink(linkto, dstname)
+			elif os.path.isdir(srcname):
+				copytree(srcname, dstname, symlinks)
 			else:
-				copyfile(srcName, dstName)
-		except OSError as err:
-			print("[Directories] Error %d: Copying tree '%s' to '%s'!  (%s)" % (err.errno, srcName, dstName, err.strerror))
+				copyfile(srcname, dstname)
+		except (IOError, OSError) as err:
+			print("[Directories] Error %d: Copying tree '%s' to '%s'! (%s)" % (err.errno, srcname, dstname, err.strerror))
 	try:
-		status = stat(src)
+		st = os.stat(src)
 		try:
-			chmod(dst, S_IMODE(status.st_mode))
-		except OSError as err:
-			print("[Directories] Error %d: Setting modes from '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
+			os.chmod(dst, S_IMODE(st.st_mode))
+		except (IOError, OSError) as err:
+			print("[Directories] Error %d: Setting modes from '%s' to '%s'! (%s)" % (err.errno, src, dst, err.strerror))
 		try:
-			utime(dst, (status.st_atime, status.st_mtime))
-		except OSError as err:
-			print("[Directories] Error %d: Setting times from '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
-	except OSError as err:
-		print("[Directories] Error %d: Obtaining stats from '%s' to '%s'!  (%s)" % (err.errno, src, dst, err.strerror))
-
+			os.utime(dst, (st.st_atime, st.st_mtime))
+		except (IOError, OSError) as err:
+			print("[Directories] Error %d: Setting times from '%s' to '%s'! (%s)" % (err.errno, src, dst, err.strerror))
+	except (IOError, OSError) as err:
+		print("[Directories] Error %d: Obtaining stats from '%s' to '%s'! (%s)" % (err.errno, src, dst, err.strerror))
 
 # Renames files or if source and destination are on different devices moves them in background
 # input list of (source, destination)
+#
 
 
 def moveFiles(fileList):
@@ -503,57 +510,56 @@ def moveFiles(fileList):
 	movedList = []
 	try:
 		for item in fileList:
-			rename(item[0], item[1])
+			os.rename(item[0], item[1])
 			movedList.append(item)
-	except OSError as err:
-		if err.errno == EXDEV:  # EXDEV - Invalid cross-device link.
+	except (IOError, OSError) as err:
+		if err.errno == errno.EXDEV:  # Invalid cross-device link
 			print("[Directories] Warning: Cannot rename across devices, trying slower move.")
-			from Tools.CopyFiles import moveFiles as extMoveFiles  # OpenViX, OpenATV, Beyonwiz
-			# from Screens.CopyFiles import moveFiles as extMoveFiles  # OpenPLi / OV
+			# from Tools.CopyFiles import moveFiles as extMoveFiles  # OpenViX, OpenATV, Beyonwiz
+			from Screens.CopyFiles import moveFiles as extMoveFiles  # OpenPLi
 			extMoveFiles(fileList, item[0])
 			print("[Directories] Moving files in background.")
 		else:
-			print("[Directories] Error %d: Moving file '%s' to '%s'!  (%s)" % (err.errno, item[0], item[1], err.strerror))
+			print("[Directories] Error %d: Moving file '%s' to '%s'! (%s)" % (err.errno, item[0], item[1], err.strerror))
 			errorFlag = True
 	if errorFlag:
 		print("[Directories] Reversing renamed files due to error.")
 		for item in movedList:
 			try:
-				rename(item[1], item[0])
-			except OSError as err:
-				print("[Directories] Error %d: Renaming '%s' to '%s'!  (%s)" % (err.errno, item[1], item[0], err.strerror))
-				print("[Directories] Note: Failed to undo move of '%s' to '%s'!" % (item[0], item[1]))
+				os.rename(item[1], item[0])
+			except (IOError, OSError) as err:
+				print("[Directories] Error %d: Renaming '%s' to '%s'! (%s)" % (err.errno, item[1], item[0], err.strerror))
+				print("[Directories] Failed to undo move:", item)
 
 
 def getSize(path, pattern=".*"):
-	pathSize = 0
-	if isdir(path):
-		for file in crawlDirectory(path, pattern):
+	path_size = 0
+	if os.path.isdir(path):
+		files = crawlDirectory(path, pattern)
+		for file in files:
+			filepath = os.path.join(file[0], file[1])
+			path_size += os.path.getsize(filepath)
+	elif os.path.isfile(path):
+		path_size = os.path.getsize(path)
+	return path_size
 
-			pathSize += getsize(pathjoin(file[0], file[1]))
 
-	elif isfile(path):
-		pathSize = getsize(path)
-	return pathSize
-
-
-def lsof():  # List of open files.
+def lsof():
 	lsof = []
-	for pid in listdir("/proc"):
+	for pid in os.listdir("/proc"):
 		if pid.isdigit():
 			try:
-				prog = readlink(pathjoin("/proc", pid, "exe"))
-				dir = pathjoin("/proc", pid, "fd")
-				for file in [pathjoin(dir, file) for file in listdir(dir)]:
-					lsof.append((pid, prog, readlink(file)))
-			except OSError as err:
-				print(err)
+				prog = os.readlink(os.path.join("/proc", pid, "exe"))
+				dir = os.path.join("/proc", pid, "fd")
+				for file in [os.path.join(dir, file) for file in os.listdir(dir)]:
+					lsof.append((pid, prog, os.readlink(file)))
+			except OSError:
 				pass
 	return lsof
 
 
 def getExtension(file):
-	filename, extension = splitext(file)
+	filename, extension = os.path.splitext(file)
 	return extension
 
 
@@ -570,23 +576,25 @@ def mediafilesInUse(session):
 			filename = os.path.basename(filename)
 	return set([file for file in files if not (filename and file == filename and files.count(filename) < 2)])
 
-
-def shellQuote(string):
-	return "'%s'" % string.replace("'", "'\\''")
-
-
-def shellquote(string):
-	return shellQuote(string)
+# Prepare filenames for use in external shell processing. Filenames may
+# contain spaces or other special characters.  This method adjusts the
+# filename to be a safe and single entity for passing to a shell.
+#
 
 
-def isPluginInstalled(pluginName, pluginFile="plugin", pluginType=None):
-	types = ["Extensions", "SystemPlugins"]
-	if pluginType:
-		types = [pluginType]
-	for type in types:
-		for extension in ["c", ""]:
-			if isfile(pathjoin(scopePlugins, type, pluginName, "%s.py%s" % (pluginFile, extension))):
-				return True
+def shellquote(s):
+	return "'%s'" % s.replace("'", "'\\''")
+
+
+def isPluginInstalled(pluginname, pluginfile="plugin", pluginType=None):
+	path = resolveFilename(SCOPE_PLUGINS)
+	pluginfolders = [name for name in listdir(path) if pathIsdir(pathJoin(path, name)) and name not in ["__pycache__"]]
+	if pluginType is None or pluginType in pluginfolders:
+		plugintypes = pluginType and [pluginType] or pluginfolders
+		for fileext in [".pyc", ".py"]:
+			for plugintype in plugintypes:
+				if pathIsfile(pathJoin(path, plugintype, pluginname, pluginfile + fileext)):
+					return True
 	return False
 
 
@@ -594,7 +602,7 @@ def fileWriteLine(filename, line, source=DEFAULT_MODULE_NAME, debug=False):
 	try:
 		with open(filename, "w") as fd:
 			fd.write(str(line))
-		msg = "Wrote"
+		# msg = "Wrote"
 		result = 1
 	except OSError as err:
 		print("[%s] Error %d: Unable to write a line to file '%s'!  (%s)" % (source, err.errno, filename, err.strerror))
@@ -616,7 +624,7 @@ def fileReadLines(filename, default=None, source=DEFAULT_MODULE_NAME, debug=Fals
 	try:
 		with open(filename) as fd:
 			lines = fd.read().splitlines()
-		msg = "Read"
+		# msg = "Read"
 	except OSError as err:
 		if err.errno != ENOENT:  # ENOENT - No such file or directory.
 			print("[%s] Error %d: Unable to read lines from file '%s'!  (%s)" % (source, err.errno, filename, err.strerror))
@@ -635,11 +643,11 @@ def fileWriteLines(filename, lines, source=DEFAULT_MODULE_NAME, debug=False):
 				lines.append("")
 				lines = "\n".join(lines)
 			fd.write(lines)
-		msg = "Wrote"
+		# msg = "Wrote"
 		result = 1
 	except OSError as err:
 		print("[%s] Error %d: Unable to write %d lines to file '%s'!  (%s)" % (source, err.errno, len(lines), filename, err.strerror))
-		msg = "Failed to write"
+		# msg = "Failed to write"
 		# result = 0
 	# if debug or forceDebug:
 		# print("[%s] Line %d: %s %d lines to file '%s'." % (source, getframe(1).f_lineno, msg, len(lines), filename))
@@ -703,48 +711,40 @@ def hasHardLinks(path):  # Test if the volume containing path supports hard link
 	return result
 
 
-def sanitizeFilename(filename):
+def sanitizeFilename(filename, maxlen=255):  # 255 is max length in bytes in ext4 (and most other file systems)
 	"""Return a fairly safe version of the filename.
 
 	We don't limit ourselves to ascii, because we want to keep municipality
 	names, etc, but we do want to get rid of anything potentially harmful,
-	and make sure we do not exceed Windows filename length limits.
+	and make sure we do not exceed filename length limits.
 	Hence a less safe blacklist, rather than a whitelist.
 	"""
-	blacklist = ["\\", "/", ":", "*", "?", "\"", "<", ">", "|", "\0", "(", ")", " "]
+	blacklist = ["\\", "/", ":", "*", "?", "\"", "<", ">", "|", "\0"]
 	reserved = [
 		"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5",
 		"COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5",
 		"LPT6", "LPT7", "LPT8", "LPT9",
 	]  # Reserved words on Windows
-	filename = "".join(c for c in filename if c not in blacklist)
-	# Remove all charcters below code point 32
-	filename = "".join(c for c in filename if 31 < ord(c))
-	filename = normalize("NFKD", filename)
+	# Remove any blacklisted chars. Remove all charcters below code point 32. Normalize. Strip.
+	filename = normalize("NFKD", "".join(c for c in filename if c not in blacklist and ord(c) > 31)).strip()
+	if all([x == "." for x in filename]) or filename in reserved:  # if filename is a string of dots
+		filename = "__" + filename
+	# Most Unix file systems typically allow filenames of up to 255 bytes.
+	# However, the actual number of characters allowed can vary due to the
+	# representation of Unicode characters. Therefore length checks must
+	# be done in bytes, not unicode.
+	#
+	# Also we cannot leave the byte truncate in the middle of a multi-byte
+	# utf8 character! So, convert to bytes, truncate then get back to unicode,
+	# ignoring errors along the way, the result will be valid unicode.
+	# Prioritise maintaining the complete extension if possible.
+	# Any truncation of "root" or "ext" will be done at the end of the string
+	root, ext = os.path.splitext(filename.encode(encoding='utf-8', errors='ignore'))
+	if len(ext) > maxlen - (1 if root else 0):  # leave at least one char for root if root
+		ext = ext[:maxlen - (1 if root else 0)]
+	# convert back to unicode, ignoring any incomplete utf8 multibyte chars
+	filename = root[:maxlen - len(ext)].decode(encoding='utf-8', errors='ignore') + ext.decode(encoding='utf-8', errors='ignore')
 	filename = filename.rstrip(". ")  # Windows does not allow these at end
-	filename = filename.strip()
-	if all([x == "." for x in filename]):
-		filename = "__" + filename
-	if filename in reserved:
-		filename = "__" + filename
 	if len(filename) == 0:
 		filename = "__"
-	if len(filename) > 255:
-		parts = split(r"/|\\", filename)[-1].split(".")
-		if len(parts) > 1:
-			ext = "." + parts.pop()
-			filename = filename[:-len(ext)]
-		else:
-			ext = ""
-		if filename == "":
-			filename = "__"
-		if len(ext) > 254:
-			ext = ext[254:]
-		maxl = 255 - len(ext)
-		filename = filename[:maxl]
-		filename = filename + ext
-		# Re-check last character (if there was no extension)
-		filename = filename.rstrip(". ")
-		if len(filename) == 0:
-			filename = "__"
 	return filename
