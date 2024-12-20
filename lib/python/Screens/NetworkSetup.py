@@ -330,16 +330,16 @@ class NameserverSetup(ConfigListScreen, HelpableScreen, Screen):
 
 	def getNetworkRoutes(self):
 		# # cat /proc/net/route
-		# Iface	  Destination	  Gateway		  Flags	  RefCnt  Use	  Metric  Mask			  MTU	  Window  IRTT
-		# eth0	  00000000		  FE08A8C0		  0003	  0		  0		  0		  00000000		  0		  0		  0
-		# eth0	  0008A8C0		  00000000		  0001	  0		  0		  0		  00FFFFFF		  0		  0		  0
+		# Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
+		# eth0    00000000        FE08A8C0        0003    0       0       0       00000000        0       0       0
+		# eth0    0008A8C0        00000000        0001    0       0       0       00FFFFFF        0       0       0
 		gateways = []
 		lines = []
 		lines = fileReadLines("/proc/net/route", lines, source=MODULE_NAME)
 		headings = lines.pop(0)
 		for line in lines:
 			data = line.split()
-			if data[1] == "00000000" and int(data[3]) & 0x03 and data[7] == "00000000":	 # If int(flags) & 0x03 is True this is a gateway (0x02) and it is up (0x01).
+			if data[1] == "00000000" and int(data[3]) & 0x03 and data[7] == "00000000":  # If int(flags) & 0x03 is True this is a gateway (0x02) and it is up (0x01).
 				gateways.append((data[0], tuple(reversed([int(data[2][x:x + 2], 16) for x in range(0, len(data[2]), 2)]))))
 		return gateways
 
@@ -493,7 +493,7 @@ class AdapterSetup(ConfigListScreen, HelpableScreen, Screen):
 			for p in plugins.getPlugins(PluginDescriptor.WHERE_NETWORKSETUP):
 				call_fnc = p.fnc["ifaceSupported"](self.iface)
 				if call_fnc is not None:
-					if "WlanPluginEntry" in p.fnc:	# internally used only for WLAN Plugin
+					if "WlanPluginEntry" in p.fnc:  # internally used only for WLAN Plugin
 						self.extended = call_fnc
 						if "configStrings" in p.fnc:
 							self.configStrings = p.fnc["configStrings"]
@@ -735,7 +735,7 @@ class AdapterSetupConfiguration(Screen, HelpableScreen):
 			return False
 		else:
 			try:
-				ifobj = Wireless(iface)	 # a Wireless NIC Object
+				ifobj = Wireless(iface)  # a Wireless NIC Object
 				wlanresponse = ifobj.getAPaddr()
 			except IOError as xxx_todo_changeme:
 				(error_no, error_str) = xxx_todo_changeme.args
@@ -759,7 +759,7 @@ class AdapterSetupConfiguration(Screen, HelpableScreen):
 					if self.queryWirelessDevice(self.iface):
 						self.session.openWithCallback(self.AdapterSetupClosed, AdapterSetup, self.iface)
 					else:
-						self.showErrorMessage()	 # Display Wlan not available Message
+						self.showErrorMessage()  # Display Wlan not available Message
 			else:
 				self.session.openWithCallback(self.AdapterSetupClosed, AdapterSetup, self.iface)
 		if self["menulist"].getCurrent()[1] == 'test':
@@ -775,7 +775,7 @@ class AdapterSetupConfiguration(Screen, HelpableScreen):
 				if self.queryWirelessDevice(self.iface):
 					self.session.openWithCallback(self.WlanScanClosed, WlanScan, self.iface)
 				else:
-					self.showErrorMessage()	 # Display Wlan not available Message
+					self.showErrorMessage()  # Display Wlan not available Message
 		if self["menulist"].getCurrent()[1] == 'wlanstatus':
 			try:
 				from Plugins.SystemPlugins.WirelessLan.plugin import WlanStatus
@@ -785,7 +785,7 @@ class AdapterSetupConfiguration(Screen, HelpableScreen):
 				if self.queryWirelessDevice(self.iface):
 					self.session.openWithCallback(self.WlanStatusClosed, WlanStatus, self.iface)
 				else:
-					self.showErrorMessage()	 # Display Wlan not available Message
+					self.showErrorMessage()  # Display Wlan not available Message
 		if self["menulist"].getCurrent()[1] == 'lanrestart':
 			self.session.openWithCallback(self.restartLan, MessageBox, (_("Are you sure you want to restart your network interfaces?\n\n") + self.oktext))
 		if self["menulist"].getCurrent()[1] == 'openwizard':
@@ -869,7 +869,7 @@ class AdapterSetupConfiguration(Screen, HelpableScreen):
 			callFnc = p.fnc["ifaceSupported"](self.iface)
 			if callFnc is not None:
 				self.extended = callFnc
-				if "WlanPluginEntry" in p.fnc:	# internally used only for WLAN Plugin
+				if "WlanPluginEntry" in p.fnc:  # internally used only for WLAN Plugin
 					menu.append((_("Scan wireless networks"), "scanwlan"))
 					if iNetwork.getAdapterAttribute(self.iface, "up"):
 						menu.append((_("Show WLAN status"), "wlanstatus"))
@@ -901,7 +901,7 @@ class AdapterSetupConfiguration(Screen, HelpableScreen):
 					if self.queryWirelessDevice(self.iface):
 						self.session.openWithCallback(self.WlanStatusClosed, WlanStatus, self.iface)
 					else:
-						self.showErrorMessage()	 # Display Wlan not available Message
+						self.showErrorMessage()  # Display Wlan not available Message
 			else:
 				self.updateStatusbar()
 		else:
@@ -1093,14 +1093,14 @@ class NetworkAdapterTest(Screen):
 			self["EditSettings_Text"].setForegroundColorNum(0)
 			self["NetworkInfo"].setPixmapNum(0)
 			self["NetworkInfo_Text"].setForegroundColorNum(1)
-			self["AdapterInfo"].setPixmapNum(1)	 # active
+			self["AdapterInfo"].setPixmapNum(1)  # active
 			self["AdapterInfo_Text"].setForegroundColorNum(2)  # active
 		if button == 2:
 			self["AdapterInfo_Text"].setForegroundColorNum(1)
 			self["AdapterInfo"].setPixmapNum(0)
 			self["DhcpInfo"].setPixmapNum(0)
 			self["DhcpInfo_Text"].setForegroundColorNum(1)
-			self["NetworkInfo"].setPixmapNum(1)	 # active
+			self["NetworkInfo"].setPixmapNum(1)  # active
 			self["NetworkInfo_Text"].setForegroundColorNum(2)  # active
 		if button == 3:
 			self["NetworkInfo"].setPixmapNum(0)
@@ -1108,26 +1108,26 @@ class NetworkAdapterTest(Screen):
 			self["IPInfo"].setPixmapNum(0)
 			self["IPInfo_Text"].setForegroundColorNum(1)
 			self["DhcpInfo"].setPixmapNum(1)  # active
-			self["DhcpInfo_Text"].setForegroundColorNum(2)	# active
+			self["DhcpInfo_Text"].setForegroundColorNum(2)  # active
 		if button == 4:
 			self["DhcpInfo"].setPixmapNum(0)
 			self["DhcpInfo_Text"].setForegroundColorNum(1)
 			self["DNSInfo"].setPixmapNum(0)
 			self["DNSInfo_Text"].setForegroundColorNum(1)
-			self["IPInfo"].setPixmapNum(1)	# active
+			self["IPInfo"].setPixmapNum(1)  # active
 			self["IPInfo_Text"].setForegroundColorNum(2)  # active
 		if button == 5:
 			self["IPInfo"].setPixmapNum(0)
 			self["IPInfo_Text"].setForegroundColorNum(1)
 			self["EditSettingsButton"].setPixmapNum(0)
 			self["EditSettings_Text"].setForegroundColorNum(0)
-			self["DNSInfo"].setPixmapNum(1)	 # active
+			self["DNSInfo"].setPixmapNum(1)  # active
 			self["DNSInfo_Text"].setForegroundColorNum(2)  # active
 		if button == 6:
 			self["DNSInfo"].setPixmapNum(0)
 			self["DNSInfo_Text"].setForegroundColorNum(1)
-			self["EditSettingsButton"].setPixmapNum(1)	# active
-			self["EditSettings_Text"].setForegroundColorNum(2)	# active
+			self["EditSettingsButton"].setPixmapNum(1)  # active
+			self["EditSettings_Text"].setForegroundColorNum(2)  # active
 			self["AdapterInfo"].setPixmapNum(0)
 			self["AdapterInfo_Text"].setForegroundColorNum(1)
 
@@ -1230,32 +1230,32 @@ class NetworkAdapterTest(Screen):
 	def KeyOK(self):
 		self["infoshortcuts"].setEnabled(True)
 		self["shortcuts"].setEnabled(False)
-		if self.activebutton == 1:	# Adapter Check
+		if self.activebutton == 1:  # Adapter Check
 			self["InfoText"].setText(_("This test detects your configured LAN adapter."))
 			self["InfoTextBorder"].show()
 			self["InfoText"].show()
 			self["key_red"].setText(_("Back"))
-		if self.activebutton == 2:	# LAN Check
+		if self.activebutton == 2:  # LAN Check
 			self["InfoText"].setText(_("This test checks whether a network cable is connected to your LAN adapter.\nIf you get a \"disconnected\" message:\n- verify that a network cable is attached\n- verify that the cable is not broken"))
 			self["InfoTextBorder"].show()
 			self["InfoText"].show()
 			self["key_red"].setText(_("Back"))
-		if self.activebutton == 3:	# DHCP Check
+		if self.activebutton == 3:  # DHCP Check
 			self["InfoText"].setText(_("This test checks whether your LAN adapter is set up for automatic IP address configuration with DHCP.\nIf you get a \"disabled\" message:\n- then your LAN adapter is configured for manual IP setup\n- verify thay you have entered the correct IP information in the adapter setup dialog.\nIf you get an \"enabeld\" message:\n- verify that you have a configured and working DHCP server in your network."))
 			self["InfoTextBorder"].show()
 			self["InfoText"].show()
 			self["key_red"].setText(_("Back"))
-		if self.activebutton == 4:	# IP Check
+		if self.activebutton == 4:  # IP Check
 			self["InfoText"].setText(_("This test checks whether a valid IP address is found for your LAN adapter.\nIf you get a \"unconfirmed\" message:\n- no valid IP address was found\n- please check your DHCP, cabling and adapter setup"))
 			self["InfoTextBorder"].show()
 			self["InfoText"].show()
 			self["key_red"].setText(_("Back"))
-		if self.activebutton == 5:	# DNS Check
+		if self.activebutton == 5:  # DNS Check
 			self["InfoText"].setText(_("This test checks for configured nameservers.\nIf you get a \"unconfirmed\" message:\n- please check your DHCP, cabling and adapter setup\n- if you configured your nameservers manually please verify your entries in the \"Nameserver\" configuration"))
 			self["InfoTextBorder"].show()
 			self["InfoText"].show()
 			self["key_red"].setText(_("Back"))
-		if self.activebutton == 6:	# Edit Settings
+		if self.activebutton == 6:  # Edit Settings
 			self.session.open(AdapterSetup, self.iface)
 
 	def KeyYellow(self):
@@ -1383,7 +1383,7 @@ class NetworkAdapterTest(Screen):
 		self["DNSInfo_Text"].setForegroundColorNum(1)
 		self["EditSettings_Text"].show()
 		self["EditSettingsButton"].setPixmapNum(1)
-		self["EditSettings_Text"].setForegroundColorNum(2)	# active
+		self["EditSettings_Text"].setForegroundColorNum(2)  # active
 		self["EditSettingsButton"].show()
 		self["key_yellow"].setText("")
 		self["key_green"].setText(_("Restart test"))
