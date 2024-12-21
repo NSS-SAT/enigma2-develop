@@ -127,7 +127,7 @@ self.session.open(CrashLogScreen)
 				<item key="subtitle_setup" level="2" text="Subtitles">
 					<setup id="subtitlesetup"/>
 				</item>
-				<item key="autolanguage_setup" level="0" text="Automatic Language">
+				<item key="autolanguage_setup" level="0" text="Linguaggio automatico">
 					<setup id="autolanguagesetup"/>
 				</item>
 			</menu>
