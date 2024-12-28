@@ -1005,7 +1005,7 @@ class PluginBrowserNew(Screen):
 
         skin += skincontent
         skin += '</screen>'
-        print('skin: ', skin)
+        # print('skin: ', skin)
         self.total_pages = int(math.ceil(float(len(self.plugins)) / 21))
         count = 1
         counting = 1
