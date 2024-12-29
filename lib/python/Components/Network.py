@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
+
 from os.path import isfile
-import os
-import re
-import netifaces as ni
 from re import sub, compile as re_compile
 from struct import pack
 from socket import inet_ntoa
@@ -10,6 +8,8 @@ from Components.Console import Console
 from Components.PluginComponent import plugins
 from Plugins.Plugin import PluginDescriptor
 from Components.config import config
+import netifaces as ni
+import os
 
 
 class Network:
@@ -159,7 +159,7 @@ class Network:
 			split = i.strip().split(' ')
 			if split[0] == "iface":
 				currif = split[1]
-			if currif == iface:   # read information only for available interfaces
+			if currif == iface:  # read information only for available interfaces
 				if currif not in ifaces:
 					ifaces[currif] = {}
 					if len(split) == 4 and split[3] == "dhcp":
@@ -222,7 +222,7 @@ class Network:
 		except (ValueError, IOError) as er:
 			print("[Network.py] resolv.conf - opening failed", er)
 		else:
-			ipRegexp = "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"
+			ipRegexp = r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"
 			nameserverPattern = re_compile("nameserver +" + ipRegexp)
 			ipPattern = re_compile(ipRegexp)
 			for line in resolv:
