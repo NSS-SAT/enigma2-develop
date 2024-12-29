@@ -1,4 +1,4 @@
-import sys
+
 import os
 from Tools.Profile import profile, profile_final
 profile("PYTHON_START")
@@ -9,6 +9,7 @@ import Tools.RedirectOutput
 import enigma
 import eConsoleImpl
 import eBaseImpl
+
 enigma.eTimer = eBaseImpl.eTimer
 enigma.eSocketNotifier = eBaseImpl.eSocketNotifier
 enigma.eConsoleAppContainer = eConsoleImpl.eConsoleAppContainer
@@ -26,7 +27,6 @@ Tools.Geolocation.InitGeolocation()
 profile("SimpleSummary")
 from Screens import InfoBar
 from Screens.SimpleSummary import SimpleSummary
-
 from sys import stdout
 
 profile("Bouquets")
@@ -34,6 +34,7 @@ from Components.config import config, configfile, ConfigText, ConfigYesNo, Confi
 config.misc.load_unlinked_userbouquets = ConfigSelection(default="1", choices=[("0", _("Off")), ("1", _("Top")), ("2", _("Bottom"))])
 if config.misc.load_unlinked_userbouquets.value.lower() in ("true", "false"):
 	config.misc.load_unlinked_userbouquets.value = "1" if config.misc.load_unlinked_userbouquets.value.lower() == "true" else "0"
+
 
 def setLoadUnlinkedUserbouquets(configElement):
 	enigma.eDVBDB.getInstance().setLoadUnlinkedUserbouquets(int(configElement.value))
@@ -55,6 +56,7 @@ from skin import readSkin
 profile("LOAD:Tools")
 from Tools.Directories import InitFallbackFiles, resolveFilename, SCOPE_PLUGINS, SCOPE_CURRENT_SKIN
 InitFallbackFiles()
+
 
 def getMountPoints():
 	mount_points = []
@@ -84,7 +86,7 @@ config.misc.standbyCounter = NoSave(ConfigInteger(default=0)) # number of standb
 config.misc.DeepStandby = NoSave(ConfigYesNo(default=False)) # detect deepstandby
 config.misc.RestartUI = ConfigYesNo(default=False) # detect user interface restart
 config.misc.prev_wakeup_time = ConfigInteger(default=0)
-#config.misc.prev_wakeup_time_type is only valid when wakeup_time is not 0
+# config.misc.prev_wakeup_time_type is only valid when wakeup_time is not 0
 config.misc.prev_wakeup_time_type = ConfigInteger(default=0)
 # 0 = RecordTimer, 1 = ZapTimer, 2 = Plugins, 3 = WakeupTimer
 config.misc.epgcache_filename = ConfigDirectory(mount_point)
@@ -108,17 +110,17 @@ def setEPGCachePath(configElement):
 		configElement.value = os.path.join(configElement.value, "epg.dat")
 	enigma.eEPGCache.getInstance().setCacheFile(configElement.value)
 
-#demo code for use of standby enter leave callbacks
-#def leaveStandby():
-#	print "!!!!!!!!!!!!!!!!!leave standby"
+# demo code for use of standby enter leave callbacks
+# def leaveStandby():
+#   print "!!!!!!!!!!!!!!!!!leave standby"
 
-#def standbyCountChanged(configElement):
-#	print "!!!!!!!!!!!!!!!!!enter standby num", configElement.value
-#	from Screens.Standby import inStandby
-#	inStandby.onClose.append(leaveStandby)
+# def standbyCountChanged(configElement):
+#   print "!!!!!!!!!!!!!!!!!enter standby num", configElement.value
+#   from Screens.Standby import inStandby
+#   inStandby.onClose.append(leaveStandby)
 
-#config.misc.standbyCounter.addNotifier(standbyCountChanged, initial_call = False)
-####################################################
+# config.misc.standbyCounter.addNotifier(standbyCountChanged, initial_call = False)
+# ###################################################
 
 
 profile("Twisted")
@@ -240,7 +242,7 @@ class Session:
 
 		if self.current_dialog.isTmp:
 			self.current_dialog.doClose()
-#			dump(self.current_dialog)
+#           dump(self.current_dialog)
 			del self.current_dialog
 		else:
 			del self.current_dialog.callback
@@ -455,7 +457,7 @@ class AutoScartControl:
 		self.VCRSbChanged(self.current_vcr_sb)
 
 	def VCRSbChanged(self, value):
-		#print "vcr sb changed to", value
+		# print "vcr sb changed to", value
 		self.current_vcr_sb = value
 		if config.av.vcrswitch.value or value > 2:
 			if value:
@@ -535,7 +537,7 @@ def runScreenTest():
 	from time import time, strftime, localtime
 	from Tools.StbHardware import setFPWakeuptime, setRTCtime
 	from Screens.SleepTimerEdit import isNextWakeupTime
-	#get currentTime
+	# get currentTime
 	nowTime = time()
 	wakeupList = [
 		x for x in ((session.nav.RecordTimer.getNextRecordingTime(), 0),
@@ -548,7 +550,7 @@ def runScreenTest():
 	if wakeupList:
 		from time import strftime
 		startTime = wakeupList[0]
-		if (startTime[0] - nowTime) < 270: # no time to switch box back on
+		if (startTime[0] - nowTime) < 270:  # no time to switch box back on
 			wptime = nowTime + 30  # so switch back on in 30 seconds
 		else:
 			wptime = startTime[0] - 240
@@ -626,10 +628,10 @@ import Components.RcModel
 profile("Init:PowerOffTimer")
 from Components.PowerOffTimer import powerOffTimer
 
-#from enigma import dump_malloc_stats
-#t = eTimer()
-#t.callback.append(dump_malloc_stats)
-#t.start(1000)
+# from enigma import dump_malloc_stats
+# t = eTimer()
+# t.callback.append(dump_malloc_stats)
+# t.start(1000)
 
 # first, setup a screen
 try:
