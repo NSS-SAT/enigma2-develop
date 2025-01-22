@@ -6,19 +6,24 @@
 	<setup key="avsetup">
 		<!-- this is just a placeholder, the Videomode plugin implements this submenu -->
 	</setup>
+
+	<!-- add @lululla -->
 	<setup key="DNS" title="DNS Settings">
 		<item level="0" text="DNS data source" description="Select the source of the default DNS settings.">config.usage.dns</item>
 	</setup>
+
 	<setup key="usage" title="Customize">
 		<item level="1" text="Sort order for menu entries" description="This option allows you to hide and sort menu entries. When selecting user you can change order and hide menu items via the blue button. With the user defined hidden the blue button is not shown in the menus">config.usage.menu_sort_mode</item>
 		<item level="1" text="Sort order for setup entries" description="This option allows you to alphabetically sort setup menu entries.">config.usage.sort_settings</item>
 		<item level="1" text="Show setup default values" description="In Setup screens choose whether to show the default value of the selected item in the description field.">config.usage.setupShowDefault</item>
 		<item level="1" text="Show screen path" description="This option allows you to show the full screen path leading to the current screen.">config.usage.showScreenPath</item>
+
 		<!-- add @lululla -->
 		<item level="0" text="Plugin Browser Style (Need Restart GUI)" description="This option allows you to select the plugin browser style (Need Restart GUI).">config.misc.pluginstyle</item>
 		<item level="0" text="Choice picons folder" description="This option allows you to configure the path of the picons that will be displayed in the channel selection list. But also where they will be downloaded from the download.">config.usage.picon_dir</item>		  
 		<item level="0" text="Choice CrashLog folder" description="This option allows you to configure the path of the log crash debug.">config.usage.debug_path</item>		   
 		<!-- add end @lululla -->
+
 		<item level="0" text="Sort order for help screen" description="Choose the order in which items are displayed in Help windows">config.usage.help_sortorder</item>
 		<item level="0" text="Show menu or plugin numbers" description="This option allows you to show menu and/or plugin number quick links.">config.usage.menu_show_numbers</item>
 		<item level="2" text="Show softcam setup in extensions menu" description="This option allows you to add the softcam setup in the extensions menu." requires="HasSoftcamInstalled">config.misc.softcam_setup.extension_menu</item>
@@ -78,10 +83,12 @@
 		<item level="2" text="Enable OK as preview in channel selection" description="When enabled then when you select a new channel in the channel selection the channel selection will not close. It will only close when you select the current playing service. This is a kind of preview mode">config.usage.channelselection_preview</item>
 	</setup>
 	<setup key="userinterface" title="User interface">
+
 		<!-- add @lululla -->
 		<item level="0" text="Choice picons folder" description="This option allows you to configure the path of the picons that will be displayed in the channel selection list. But also where they will be downloaded from the download.">config.usage.picon_dir</item>		  
 		<item level="0" text="Choice CrashLog folder" description="This option allows you to configure the path of the log crash debug.">config.usage.debug_path</item>		   
 		<!-- add end @lululla -->
+
 		<item level="1" text="Show animation while busy" description="Show busy indicator when the system is busy.">config.usage.show_spinner</item>
 		<item level="1" text="Show positioner movement" requires="isRotorTuner" description="Configure whether or not an icon should be shown when your motorized dish is moving.">config.usage.showdish</item>
 		<item level="1" text="Show positioner position" requires="isRotorTuner" description="Configure whether or not a rotor position will be displayed on the infobar">config.misc.showrotorposition</item>
@@ -142,10 +149,9 @@
 	<setup key="Softcam" title="Softcam Settings" showOpenWebif="1">
 		<item level="0" text="Select Softcam" description="Select a Softcam from the available list.">config.misc.softcams</item>
 		<item level="2" text="Show OScam/CCcam in Extension Menu" description="Allows you to show/hide OScam/CCcam in the Extension Menu screen (BLUE button).">config.softcam.showInExtensions</item>
-	</setup>																							  
-																																																  
-																																												 
-																																																	 
+	</setup>
+
+	<!-- add @lululla -->
 	<setup key="OSCamInfoSetup" title="OSCam Information Settings">
 		<item level="0" text="Read Userdata from oscam.conf" description="Read Userdata from oscam.conf">config.oscaminfo.userDataFromConf</item>
 		<if conditional="not config.oscaminfo.userDataFromConf.value">
