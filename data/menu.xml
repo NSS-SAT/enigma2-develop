@@ -61,6 +61,12 @@ from Screens.radio import radiom1
 self.session.open(radiom1)	
 </code>
 		</item>
+		<item weight="14" level="0" text="NSS Script" key="acherscript">
+			<code>
+from Screens.AcheScript import OpenScript
+self.session.open(OpenScript)	
+</code>
+		</item>
 		<item weight="15" level="0" text="NSS Skin Setup" key="AglareSetup">
 			<code>
 from Plugins.Extensions.Aglare.plugin import AglareSetup
@@ -127,7 +133,7 @@ self.session.open(CrashLogScreen)
 				<item key="subtitle_setup" level="2" text="Subtitles">
 					<setup id="subtitlesetup"/>
 				</item>
-				<item key="autolanguage_setup" level="0" text="Linguaggio automatico">
+				<item key="autolanguage_setup" level="0" text="Automatic Language">
 					<setup id="autolanguagesetup"/>
 				</item>
 			</menu>
