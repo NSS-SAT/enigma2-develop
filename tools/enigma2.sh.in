@@ -21,6 +21,35 @@ if [ -z $LC_ALL ]; then
 	export LC_ALL=en_GB.utf8
 fi
 
+# enigma-info opkg bug fix
+df -P | grep -v "tmpfs " | awk '{print $6}' | tail -n +3 > /tmp/upgrade_mountpoints.txt
+while read line; do
+	# skip VU+ multiboot mount and the root itself
+	if [ -f $line/STARTUP.cpio.gz -o "$line" == "/" ]; then
+		continue
+	fi
+	if [  -f $line/var/lib/opkg/info/enigma-info.list ]; then
+		sed -i "s#^${line}##g" $line/var/lib/opkg/info/enigma-info.list
+		mv $line/var/lib/opkg/info/enigma-info.* /var/lib/opkg/info
+		mv $line/usr/lib/enigma.info /usr/lib
+		f=
+		while read status; do
+			if [ "$status" == "Package: enigma-info" ]; then
+				f=1
+			fi
+			if [ -n "$f" ]; then
+				echo $status >> /var/lib/opkg/status
+			else
+				echo $status >> /tmp/status
+			fi
+			if [ "$status" == "" ]; then
+				f=
+			fi
+		done < $line/var/lib/opkg/status
+		mv /tmp/status $line/var/lib/opkg/status
+	fi
+done < /tmp/upgrade_mountpoints.txt
+
 LIBS=@libdir@/libopen.so.0.0.0
 
 # enigma main loop
