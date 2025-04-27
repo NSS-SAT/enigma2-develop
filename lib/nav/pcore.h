@@ -16,9 +16,7 @@ public:
 	pNavigation(int decoder = 0);
 
 	RESULT playService(const eServiceReference &service);
-	RESULT setPiPService(const eServiceReference &service);
 	RESULT stopService();
-	RESULT clearPiPService();
 	RESULT pause(int p);
 	SWIG_VOID(RESULT) getCurrentService(ePtr<iPlayableService> &SWIG_OUTPUT);
 
