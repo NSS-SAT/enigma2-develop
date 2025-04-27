@@ -74,7 +74,7 @@ class ResumePoints():
 		self.resumePointCache.clear()
 		if fileExists(self.resumePointFile):
 			with open(self.resumePointFile, "rb") as f:
-				self.resumePointCache.update(pickle_load(f))
+				self.resumePointCache.update(pickle_load(f, fix_imports=True, encoding="utf8"))
 
 	def saveResumePoints(self):
 		with open(self.resumePointFile, "wb") as f:
@@ -182,6 +182,7 @@ class InfoBarStreamRelay:
 	data = property(getData, setData)
 
 	def streamrelayChecker(self, playref):
+		is_stream_relay = False
 		playrefstring, renamestring = self.splitref(playref.toString())
 		if '%3a//' not in playrefstring and playrefstring in self.__srefs:
 			url = "http://%s:%s/" % (config.misc.softcam_streamrelay_url.getHTML(), config.misc.softcam_streamrelay_port.value)
@@ -190,8 +191,10 @@ class InfoBarStreamRelay:
 			else:
 				playrefmod = playrefstring
 			playref = eServiceReference("%s%s%s:%s" % (playrefmod, url.replace(":", "%3a"), playrefstring.replace(":", "%3a"), renamestring or ServiceReference(playref).getServiceName()))
+			is_stream_relay = True
 			print(f"[{self.__class__.__name__}] Play service {playref.toString()} via streamrelay")
-		return playref
+			playref.setCompareSref(playrefstring, True)
+		return playref, is_stream_relay
 
 	def checkService(self, service):
 		return service and self.splitref(service.toString())[0] in self.__srefs
@@ -246,7 +249,11 @@ def getActiveSubservicesForCurrentChannel(service):
 					if title and ("Sendepause" not in title and "Sky Sport Kompakt" not in title):
 						starttime = datetime.datetime.fromtimestamp(event[0]).strftime('%H:%M')
 						endtime = datetime.datetime.fromtimestamp(event[0] + event[1]).strftime('%H:%M')
-						current_show_name = "%s [%s-%s]" % (title, str(starttime), str(endtime))
+						try:
+							service_name = ServiceReference(subservice).getServiceName()
+						except:
+							service_name = ""
+						current_show_name = "%s [%s-%s] %s" % (title, str(starttime), str(endtime), service_name)
 						activeSubservices.append((current_show_name, subservice))
 	if not activeSubservices:
 		subservices = service and service.subServices()
@@ -515,7 +522,7 @@ class InfoBarShowHide(InfoBarScreenSaver):
 		if isStandardInfoBar(self) and config.usage.show_second_infobar.value == "EPG":
 			if not (hasattr(self, "hotkeyGlobal") and self.hotkeyGlobal("info") != 0):
 				self.showDefaultEPG()
-		elif self.actualSecondInfoBarScreen and config.usage.show_second_infobar.value and not self.actualSecondInfoBarScreen.shown:
+		elif self.actualSecondInfoBarScreen and config.usage.show_second_infobar.value != "no" and not self.actualSecondInfoBarScreen.shown:
 			self.show()
 			self.actualSecondInfoBarScreen.show()
 			self.startHideTimer()
@@ -2507,7 +2514,7 @@ class InfoBarPiP:
 			if self.allowPiP:
 				self.addExtension((self.getShowHideName, self.showPiP, lambda: True), "blue")
 				self.addExtension((self.getMoveName, self.movePiP, self.pipShown), "green")
-				self.addExtension((self.getSwapName, self.swapPiP, self.pipShown), "yellow")
+				self.addExtension((self.getSwapName, self.swapPiP, lambda: self.pipShown() and isStandardInfoBar(self)), "yellow")
 				self.addExtension((self.getTogglePipzapName, self.togglePipzap, lambda: True), "red")
 			else:
 				self.addExtension((self.getShowHideName, self.showPiP, self.pipShown), "blue")
@@ -2570,7 +2577,10 @@ class InfoBarPiP:
 		else:
 			self.session.pip = self.session.instantiateDialog(PictureInPicture)
 			self.session.pip.show()
-			newservice = self.lastPiPService or self.session.nav.getCurrentlyPlayingServiceOrGroup() or (slist and slist.servicelist.getCurrent())
+			if isStandardInfoBar(self):
+				newservice = self.lastPiPService or self.session.nav.getCurrentlyPlayingServiceOrGroup() or (slist and slist.servicelist.getCurrent())
+			else:
+				newservice = self.lastPiPService or (slist and slist.servicelist.getCurrent())
 			if self.session.pip.playService(newservice):
 				self.session.pipshown = True
 				self.session.pip.servicePath = slist and slist.getCurrentServicePath()
