@@ -993,7 +993,9 @@ RESULT eServiceFactoryDVB::offlineOperations(const eServiceReference &ref, ePtr<
 
 RESULT eServiceFactoryDVB::lookupService(ePtr<eDVBService> &service, const eServiceReference &ref)
 {
-	if (!ref.path.empty() && !ref.isStreamRelay) // playback
+	eServiceReferenceDVB sRelayOrigSref;
+	bool res = ((const eServiceReferenceDVB&)ref).getSROriginal(sRelayOrigSref);
+	if (!ref.path.empty() && !res) // playback
 	{
 		eDVBMetaParser parser;
 		int ret=parser.parseFile(ref.path);
@@ -1006,10 +1008,10 @@ RESULT eServiceFactoryDVB::lookupService(ePtr<eDVBService> &service, const eServ
 		if (!ret)
 			eDVBDB::getInstance()->parseServiceData(service, parser.m_service_data);
 	}
-	else if (ref.isStreamRelay)
+	else if (res)
 	{
 		int err;
-		if ((err = eDVBDB::getInstance()->getService(eServiceReferenceDVB(ref.compareSref), service)) != 0)
+		if ((err = eDVBDB::getInstance()->getService(sRelayOrigSref, service)) != 0)
 		{
 			eTrace("[eServiceFactoryDVB] lookupService SR original service failed!");
 			return err;
@@ -1479,10 +1481,12 @@ RESULT eDVBServicePlay::connectEvent(const sigc::slot<void(iPlayableService*,int
 
 RESULT eDVBServicePlay::pause(ePtr<iPauseableService> &ptr)
 {
+	eServiceReferenceDVB sRelayOrigSref;
+	bool isSRService = ((const eServiceReferenceDVB&)m_reference).getSROriginal(sRelayOrigSref);
 		/* note: we check for timeshift to be enabled,
 			not neccessary active. if you pause when timeshift
 			is not active, you should activate it when unpausing */
-	if ((!m_is_pvr) && (!m_timeshift_enabled) && (m_reference.path.empty() || m_reference.isStreamRelay))
+	if ((!m_is_pvr) && (!m_timeshift_enabled) && (m_reference.path.empty() || isSRService))
 	{
 		ptr = nullptr;
 		return -1;
@@ -1577,7 +1581,9 @@ RESULT eDVBServicePlay::setFastForward_internal(int ratio, bool final_seek)
 
 RESULT eDVBServicePlay::seek(ePtr<iSeekableService> &ptr)
 {
-	if (m_is_pvr || m_timeshift_enabled || (!m_reference.path.empty() && !m_reference.isStreamRelay))
+	eServiceReferenceDVB sRelayOrigSref;
+	bool isSRService = ((const eServiceReferenceDVB&)m_reference).getSROriginal(sRelayOrigSref);
+	if (m_is_pvr || m_timeshift_enabled || (!m_reference.path.empty() && !isSRService))
 	{
 		ptr = this;
 		return 0;
@@ -2028,14 +2034,6 @@ int eDVBServicePlay::getInfo(int w)
 	case sTSID:
 		return ((const eServiceReferenceDVB&)m_reference).getTransportStreamID().get();
 	case sNamespace:
-		// use origiginal namespace
-		if (m_reference.isStreamRelay){
-			eServiceReferenceDVB m_parsed_ref = eServiceReferenceDVB(m_reference.compareSref);
-			if (m_parsed_ref.valid()) 
-			{
-				return ((const eServiceReferenceDVB&)m_parsed_ref).getDVBNamespace().get();
-			}
-		}
 		return ((const eServiceReferenceDVB&)m_reference).getDVBNamespace().get();
 	case sProvider:
 		if (!m_dvb_service) return -1;
@@ -2057,16 +2055,17 @@ std::string eDVBServicePlay::getInfoString(int w)
 	case sProvider:
 	{
 		if (!m_dvb_service) return "";
-		if (m_dvb_service->m_provider_name.empty() && m_reference.isStreamRelay) {
-			eServiceReferenceDVB sRelaySref = eServiceReferenceDVB(m_reference.compareSref);
-			if (sRelaySref.valid())
-			{
+		std::string prov = m_dvb_service->m_provider_name;
+		if (prov.empty()) {
+			eServiceReferenceDVB sRelayOrigSref;
+			bool res = ((const eServiceReferenceDVB&)m_reference).getSROriginal(sRelayOrigSref);
+			if (res) {
 				ePtr<eDVBService> sRelayServiceOrigSref;
-				eDVBDB::getInstance()->getService(sRelaySref, sRelayServiceOrigSref);
-				m_dvb_service->m_provider_name = std::string(sRelayServiceOrigSref->m_provider_name);
+				eDVBDB::getInstance()->getService(sRelayOrigSref, sRelayServiceOrigSref);
+				return sRelayServiceOrigSref->m_provider_name;
 			}
 		}
-		return m_dvb_service->m_provider_name;
+		return prov;
 	}
 	case sServiceref:
 		return m_reference.toString();
@@ -2092,13 +2091,10 @@ std::string eDVBServicePlay::getInfoString(int w)
 
 ePtr<iDVBTransponderData> eDVBServicePlay::getTransponderData()
 {
-	if(m_reference.isStreamRelay)
-	{
-		eServiceReferenceDVB srRef = eServiceReferenceDVB(m_reference.compareSref);
-		if (srRef.valid())
-		{
-			return eStaticServiceDVBInformation().getTransponderData(srRef);
-		}
+	eServiceReferenceDVB orig;
+	bool res = ((const eServiceReferenceDVB&)m_reference).getSROriginal(orig);
+	if (res) {
+		return eStaticServiceDVBInformation().getTransponderData(orig);
 	}
 	return eStaticServiceDVBInformation().getTransponderData(m_reference);
 }
