@@ -897,24 +897,11 @@ def InitUsageConfig():
 	config.autolanguage.subtitle_defaultdvb = ConfigYesNo(default=False)
 	config.autolanguage.subtitle_usecache = ConfigYesNo(default=True)
 
-	config.streaming = ConfigSubsection()
-	config.streaming.stream_ecm = ConfigYesNo(default=False)
-	config.streaming.descramble = ConfigYesNo(default=True)
-	config.streaming.descramble_client = ConfigYesNo(default=False)
-	config.streaming.stream_eit = ConfigYesNo(default=True)
-	config.streaming.stream_ait = ConfigYesNo(default=True)
-	config.streaming.authentication = ConfigYesNo(default=False)
-
-	config.mediaplayer = ConfigSubsection()
-	config.mediaplayer.useAlternateUserAgent = ConfigYesNo(default=False)
-	config.mediaplayer.alternateUserAgent = ConfigText(default="")
-
 	config.misc.softcam_setup = ConfigSubsection()
 	config.misc.softcam_setup.extension_menu = ConfigYesNo(default=True)
 	config.misc.softcam_streamrelay_url = ConfigIP(default=[127, 0, 0, 1], auto_jump=True)
 	config.misc.softcam_streamrelay_port = ConfigInteger(default=17999, limits=(0, 65535))
 	config.misc.softcam_streamrelay_delay = ConfigSelectionNumber(min=0, max=2000, stepwidth=50, default=100, wraparound=True)
-
 	config.softcam = ConfigSubsection()
 	config.softcam.showInExtensions = ConfigYesNo(default=False)
 	config.softcam.hideServerName = ConfigYesNo(default=False)
@@ -958,6 +945,17 @@ def InitUsageConfig():
 	config.cccaminfo.ecmInfoPositionY = ConfigInteger(default=50)
 	config.cccaminfo.blacklist = ConfigText(default="/etc/enigma2/CCcamInfo.blacklisted", fixed_size=False)
 	config.cccaminfo.profiles = ConfigText(default="/etc/enigma2/CCcamInfo.profiles", fixed_size=False)
+	config.streaming = ConfigSubsection()
+	config.streaming.stream_ecm = ConfigYesNo(default=False)
+	config.streaming.descramble = ConfigYesNo(default=True)
+	config.streaming.descramble_client = ConfigYesNo(default=False)
+	config.streaming.stream_eit = ConfigYesNo(default=True)
+	config.streaming.stream_ait = ConfigYesNo(default=True)
+	config.streaming.authentication = ConfigYesNo(default=False)
+
+	config.mediaplayer = ConfigSubsection()
+	config.mediaplayer.useAlternateUserAgent = ConfigYesNo(default=False)
+	config.mediaplayer.alternateUserAgent = ConfigText(default="")
 
 	config.ntp = ConfigSubsection()
 

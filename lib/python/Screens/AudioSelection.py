@@ -241,6 +241,7 @@ class AudioSelection(ConfigListScreen, Screen):
 						description = types[x[2]]
 					except:
 						description = _("unknown") + ": %s" % x[2]
+					number = str(int(number) + 1)
 
 				streams.append((x, "", number, description, language, selected, selectionpng if selected == "X" else None))
 				idx += 1
@@ -288,7 +289,7 @@ class AudioSelection(ConfigListScreen, Screen):
 		track = int(audio)
 		if isinstance(track, int):
 			service = self.session.nav.getCurrentService()
-			ref = self.session.nav.getCurrentServiceReferenceOriginal()
+			ref = self.session.nav.getCurrentlyPlayingServiceReference()
 			#ref = ref and eServiceReference(ref.toString())
 			if service.audioTracks().getNumberOfTracks() > track:
 				self.audioTracks.selectTrack(track)
@@ -465,7 +466,7 @@ class QuickSubtitlesConfigMenu(ConfigListScreen, Screen):
 		sub = self.infobar.selected_subtitle
 		if sub[0] == 0:  # dvb
 			menu = [
-				getConfigMenuItem("config.subtitles.dvb_subtitles_color"),
+				getConfigMenuItem("config.subtitles.dvb_subtitles_yellow"),
 				getConfigMenuItem("config.subtitles.dvb_subtitles_backtrans"),
 				getConfigMenuItem("config.subtitles.dvb_subtitles_original_position"),
 				(_("Center DVB subtitles"), self.center_dvb_subs),

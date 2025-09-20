@@ -61,12 +61,6 @@ from Screens.radio import radiom1
 self.session.open(radiom1)	
 </code>
 		</item>
-		<item weight="14" level="0" text="NSS Script" key="acherscript">
-			<code>
-from Screens.AcheScript import OpenScript
-self.session.open(OpenScript)	
-</code>
-		</item>
 		<item weight="15" level="0" text="NSS Skin Setup" key="AglareSetup">
 			<code>
 from Plugins.Extensions.Aglare.plugin import AglareSetup
